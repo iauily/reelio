@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment - Reelio</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="sub-header">
+        <div class="logo">
+            <a href="index.html" class="logo-link">
+                <img src="logo.png" alt="Reelio Logo">
+            </a>
+        </div>
+        <span class="page-title">Payment</span>
+    </header>
+
+    <main class="payment-page">
+        <section class="booking-details-summary">
+            <h2>Booking Summary</h2>
+            <div class="summary-content">
+                <img src="" alt="Movie Poster" id="paymentMoviePoster" class="payment-poster">
+                <div class="summary-text">
+                    <h3 id="paymentMovieTitle"></h3>
+                    <p><strong>Location:</strong> <span id="paymentLocation"></span></p>
+                    <p><strong>Date:</strong> <span id="paymentDate"></span></p>
+                    <p><strong>Time:</strong> <span id="paymentTime"></span></p>
+                    <p><strong>Selected Seats:</strong> <span id="paymentSelectedSeats"></span></p>
+                    <p class="total-amount"><strong>Total Amount:</strong> <span id="paymentTotalAmount">₱0.00</span></p>
+                </div>
+            </div>
+        </section>
+
+        <section class="payment-details-section">
+            <h2>Payment Details</h2>
+            <div class="payment-options">
+                <button class="payment-option-btn active" data-payment-method="card">Credit/Debit Card</button>
+                <button class="payment-option-btn" data-payment-method="gcash">GCash</button>
+            </div>
+
+            <form id="cardPaymentForm" class="payment-form active">
+                <div class="form-group">
+                    <label for="card-number">Card Number</label>
+                    <input type="tel" id="card-number" placeholder="XXXX XXXX XXXX XXXX" required maxlength="19" pattern="[0-9]{4} [0-9]{4} [0-9]{4} [0-9]{4}|[0-9]{16}">
+                </div>
+                <div class="form-group">
+                    <label for="card-name">Cardholder Name</label>
+                    <input type="text" id="card-name" placeholder="Name on Card" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group expiry-cvv">
+                        <label for="expiry-date">Expiry Date</label>
+                        <input type="text" id="expiry-date" placeholder="MM/YY" required maxlength="5" pattern="(0[1-9]|1[0-2])\/([0-9]{2})">
+                    </div>
+                    <div class="form-group expiry-cvv">
+                        <label for="cvv">CVV</label>
+                        <input type="tel" id="cvv" placeholder="XXX" required maxlength="4" pattern="[0-9]{3,4}">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="billing-address">Billing Address</label>
+                    <input type="text" id="billing-address" placeholder="Street Address" required>
+                </div>
+                <div class="form-group">
+                    <label for="zip-code">Zip Code</label>
+                    <input type="tel" id="zip-code" placeholder="XXXXX" required maxlength="10">
+                </div>
+
+                <div class="payment-actions">
+                    <button type="submit" class="btn-confirm-payment">CONFIRM PAYMENT</button>
+                    <button type="button" class="btn-cancel-payment" onclick="window.history.back()">CANCEL</button>
+                </div>
+            </form>
+
+            <form id="gcashPaymentForm" class="payment-form" style="display:none;">
+                <div class="form-group">
+                    <label for="gcash-number">GCash Registered Phone Number</label>
+                    <input type="tel" id="gcash-number" placeholder="e.g., 0917xxxxxxx" required pattern="09[0-9]{9}" maxlength="11">
+                </div>
+                <p class="gcash-instruction">You will be redirected to the GCash app/website to complete your payment.</p>
+                <div class="payment-actions">
+                    <button type="submit" class="btn-confirm-payment">PAY WITH GCASH</button>
+                    <button type="button" class="btn-cancel-payment" onclick="window.history.back()">CANCEL</button>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <nav class="footer-nav">
+            <ul>
+                <li><a href="#">Terms of Use</a></li>
+                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="#">Accessibility</a></li>
+                <li><a href="#">Cookies Settings</a></li>
+            </ul>
+        </nav>
+        <p>© 2026 Reelio, All rights reserved.</p>
+    </footer>
+    
+    <script src="script.js"></script>
+    
+</body>
+</html>

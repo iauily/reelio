@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buy Tickets - Reelio</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="sub-header">
+        <div class="logo">
+            <a href="index.html" class="logo-link">
+                <img src="logo.png" alt="Reelio Logo">
+            </a>
+        </div>
+        <span class="page-title">Buy Tickets</span>
+    </header>
+
+    <main class="buy-tickets-page">
+        <!-- Movie Summary Section -->
+        <section class="movie-booking-summary">
+            <img id="summaryPoster" alt="Movie Poster" style="max-width:200px; margin-bottom:10px;">
+            <h2 id="summaryMovieTitle"></h2>
+            <div class="summary-details">
+                <p><strong>Location:</strong> <span id="summaryLocation"></span></p>
+                <p><strong>Date:</strong> <span id="summaryDate"></span></p>
+                <p><strong>Time:</strong> <span id="summaryTime"></span></p>
+                <p><strong>Rating:</strong> <span id="summaryRating"></span></p>
+            </div>
+        </section>
+
+        <!-- Seat Selection Section -->
+        <section class="seat-selection-section">
+            <h2>Select Your Seats</h2>
+            <div class="screen-indicator">Screen</div>
+            <div class="seating-chart" id="seatingChart"></div>
+
+            <div class="seat-legend">
+                <div class="legend-item"><span class="seat available"></span> Available</div>
+                <div class="legend-item"><span class="seat selected"></span> Selected</div>
+                <div class="legend-item"><span class="seat occupied"></span> Occupied</div>
+            </div>
+
+            <div class="booking-actions">
+                <p>Selected Seats: <span id="selectedSeatsDisplay">None</span></p>
+                <p>Total Price: ₱<span id="totalPriceDisplay">0.00</span></p>
+                <button class="btn-proceed-payment" id="btnProceedToPayment" disabled>Proceed to Payment</button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="sub-footer">
+        <nav class="footer-nav">
+            <ul>
+                <li><a href="#">Terms of Use</a></li>
+                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="#">Accessibility</a></li>
+                <li><a href="#">Cookies Settings</a></li>
+            </ul>
+        </nav>
+        <p>© 2026 Reelio, All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Get the selected booking from localStorage
+        const booking = JSON.parse(localStorage.getItem('selectedBooking'));
+
+        if (booking) {
+            // Populate the summary
+            document.getElementById('summaryPoster').src = booking.poster;
+            document.getElementById('summaryPoster').alt = booking.title + " Poster";
+            document.getElementById('summaryMovieTitle').textContent = booking.title;
+            document.getElementById('summaryLocation').textContent = booking.location;
+            document.getElementById('summaryDate').textContent = booking.date;
+            document.getElementById('summaryTime').textContent = booking.time;
+            document.getElementById('summaryRating').textContent = booking.rating;
+        } else {
+            // Fallback if no booking exists
+            document.querySelector('.buy-tickets-page').innerHTML = `
+                <div style="text-align:center; padding:50px;">
+                    <h2>No Movie Selected</h2>
+                    <p>Please go back to the <a href="index.html">Now Showing</a> page and select a movie.</p>
+                    <button onclick="window.location.href='index.html'" style="margin-top:20px;">Back</button>
+                </div>
+            `;
+        }
+
+        // Seat Selection
+        const seatingChart = document.getElementById('seatingChart');
+        const rows = ['A','B','C','D','E','F','G'];
+        const seatsPerRow = 10;
+        const seatPrice = 350.00;
+        let selectedSeats = [];
+        let totalPrice = 0;
+
+        const selectedSeatsDisplay = document.getElementById('selectedSeatsDisplay');
+        const totalPriceDisplay = document.getElementById('totalPriceDisplay');
+        const btnProceedToPayment = document.getElementById('btnProceedToPayment');
+
+        function updateBookingSummary() {
+            selectedSeatsDisplay.textContent = selectedSeats.length > 0 ? selectedSeats.sort().join(', ') : 'None';
+            totalPriceDisplay.textContent = totalPrice.toFixed(2);
+            btnProceedToPayment.disabled = selectedSeats.length === 0;
+        }
+
+        const occupiedSeats = ['A3','A4','B5','C1','C2','D8','D9','G10']; // Example occupied seats
+
+        rows.forEach(row => {
+            for(let i=1; i<=seatsPerRow; i++){
+                const seatId = `${row}${i}`;
+                const seat = document.createElement('div');
+                seat.classList.add('seat');
+                seat.textContent = i;
+                seat.dataset.seatId = seatId;
+
+                if(occupiedSeats.includes(seatId)){
+                    seat.classList.add('occupied');
+                } else {
+                    seat.addEventListener('click', ()=>{
+                        if(seat.classList.contains('selected')){
+                            seat.classList.remove('selected');
+                            selectedSeats = selectedSeats.filter(s=>s!==seatId);
+                            totalPrice -= seatPrice;
+                        } else {
+                            seat.classList.add('selected');
+                            selectedSeats.push(seatId);
+                            totalPrice += seatPrice;
+                        }
+                        updateBookingSummary();
+                    });
+                }
+                seatingChart.appendChild(seat);
+            }
+        });
+
+        updateBookingSummary(); // Initial update when page loads
+
+        btnProceedToPayment.addEventListener('click', ()=>{
+            if(selectedSeats.length > 0){
+                // Combine existing booking details with selected seats and total price
+                const finalBooking = {
+                    ...booking, // Spreads all properties from the 'booking' object
+                    selectedSeats: selectedSeats,
+                    totalPrice: totalPrice.toFixed(2) // Ensure total price is formatted as a string
+                };
+                localStorage.setItem('finalBooking', JSON.stringify(finalBooking)); // Store this for the payment page
+                // alert(`Proceeding to payment for: ${finalBooking.title}\nSeats: ${finalBooking.selectedSeats.join(', ')}\nTotal: ₱${finalBooking.totalPrice}`); // For debugging
+                window.location.href = 'payment.html'; // THIS LINE IS NOW UNCOMMENTED
+            } else {
+                alert('Please select at least one seat.');
+            }
+        });
+    </script>
+</body>
+</html>

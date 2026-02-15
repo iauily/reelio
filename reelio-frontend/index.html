@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reelio</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="main-header">
+        <div class="logo">
+           <a href="index.html" class="logo-link">
+            <img src="logo.png" alt="R Logo">
+        </a>
+    </div>
+    <nav class="main-nav">
+        <ul>
+            <li><a href="#now-showing-section" class="scroll-link">NOW SHOWING</a></li>
+            <li><a href="#coming-soon-section" class="scroll-link">COMING SOON</a></li>
+            <!-- New: My Bookings link - initially hidden -->
+            <li id="myBookingsNavLink" style="display:none;"><a href="my-bookings.html">MY BOOKINGS</a></li>
+            <!-- New: Admin link - initially hidden and for demo purposes only -->
+            <li id="adminNavLink" style="display:none;"><a href="admin.html">ADMIN</a></li>
+            <li><a href="#contact-us-section" class="scroll-link">CONTACT US</a></li>
+        </ul>
+    </nav>
+    <div class="header-actions">
+        <!-- Wrap sign-in button and user profile for easier toggling -->
+        <div id="authActions">
+            <button class="btn-sign-in" onclick="openLoginModal()">SIGN IN</button>
+        </div>
+        <!-- User profile container, will be populated by JS -->
+        <div id="userProfileDisplay" style="display:none;">
+            <span class="user-profile">Hi, <span id="loggedInUsername"></span>!</span>
+            <button class="btn-logout" onclick="handleLogout()">LOG OUT</button>
+        </div>
+    </div>
+</header>
+       
+    <main>
+        <section class="hero-section">
+            <div class="hero-slide active">
+                <img src="avatar-fire-and-ash-hero.webp" alt="Avatar: Fire and Ash">
+                <div class="hero-content">
+                    <h1>AVATAR: FIRE AND ASH</h1>
+                    <div class="hero-buttons">
+                        <button class="btn-trailer">TRAILER</button>
+                        <button class="btn-get-tickets">GET TICKETS</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Add more slides here for slideshow functionality -->
+        </section>
+
+        <section class="now-showing" id="now-showing-section">
+            <h2>NOW SHOWING</h2>
+            <div class="movie-list">
+            
+            <a href="now-showing-details.html" class="movie-link now-showing-movie"
+                    data-title="28 Years Later: The Bone Scraps"
+                    data-overview="Dr. Kelson finds himself in a shocking new relationship - with consequences that could change the world as they know it - and Spike's encounter with Jimmy Crystal becomes a nightmare he can't escape." 
+                    data-rating="R-16 Horror, Thriller, Science Fiction • 1h 49m" 
+                    data-poster="28-years-later-poster.webp">
+                        <div class="movie-card">
+                            <img src="28-years-later.jpg" alt="28 Years Later: The Bone Scraps">
+                            <p>28 Years Later: The Bone Scraps</p>
+                        </div>
+                    </a>
+
+<a href="now-showing-details.html" class="movie-link now-showing-movie"
+                    data-title="Anaconda"
+                    data-overview="A group of friends facing mid-life crises head to the rainforest with the intention of remaking their favorite movie from their youth, only to find themselves in a fight for their lives against natural disasters, giant snakes and violent criminals."
+                    data-rating="PG-13 Adventure, Comedy, Horror • 1h 40m" 
+                    data-poster="anaconda-poster.webp">
+                        <div class="movie-card">
+                            <img src="ANACONDA.jpg" alt="anaconda">
+                            <p>Anaconda</p>
+                        </div>
+                    </a>
+
+            <a href="now-showing-details.html" class="movie-link now-showing-movie"
+                    data-title="Greenland 2: Migration"
+                    data-overview="Having found the safety of the Greenland bunker after the comet Clarke decimated the Earth, the Garrity family must now risk everything to embark on a perilous journey across the wasteland of Europe to find a new home."
+                    data-rating="PG Action, Adventure, Thriller, Science Fiction • 1h 38m" 
+                    data-poster="greenland-2.webp">
+                        <div class="movie-card">
+                            <img src="greenland-2.jpg" alt="greenland-2">
+                        <p>Greenland 2: Migration</p>
+                        </div>
+                    </a> 
+
+            <a href="now-showing-details.html" class="movie-link now-showing-movie"
+                    data-title="Avatar: Fire and Ash"
+                    data-overview="In the wake of the devastating war against the RDA and the loss of their eldest son, Jake Sully and Neytiri face a new threat on Pandora: the Ash People, a violent and power-hungry Na'vi tribe led by the ruthless Varang. Jake's family must fight for their survival and the future of Pandora in a conflict that pushes them to their emotional and physical limits."
+                    data-rating="PG Science Fiction, Adventure, Fantasy • 3h 18m" 
+                    data-poster="avatar-fire-and-ash-details.webp" >
+                        <div class="movie-card">
+                        <img src="avatar-fire-and-ash-poster.jpg" alt="avatar-fire-and-ash">
+                        <p>Avatar: Fire and Ash</p>
+                        </div>
+                    </a> 
+
+
+            </div>
+
+            <button class="scroll-btn left">&lt;</button>
+            <button class="scroll-btn right">&gt;</button>
+        </section>
+
+        <section class="coming-soon" id="coming-soon-section">
+            <h2>COMING SOON</h2>
+            <div class="movie-list">
+
+                <a href="coming-soon-details.html" class="movie-link coming-soon-movie"
+                   data-title="Primate"
+                   data-overview="A thrilling new take on the classic tale of survival, where ancient instincts clash with modern dangers. Witness the primal struggle for dominance in an unforgiving world."
+                   data-rating="PG-13 Adventure, Thriller • 1h 55m"
+                   data-poster="primate-poster.webp"
+                   data-release-date="January 21, 2026"
+                   data-trailer="">
+                    <div class="movie-card">
+                        <img src="primate.jpg" alt="Primate">
+                        <p>Primate</p>
+                    </div>
+                </a>
+
+                <a href="coming-soon-details.html" class="movie-link coming-soon-movie"
+                   data-title="The Strangers: Chapter 3"
+                   data-overview="Tethered by a frightening conclusion, Maya and the Strangers are locked on an unavoidable, unforgiving collision course — a showdown that proves they’re far from strangers now."
+                   data-rating="R Horror, Thriller • 1h 32m"
+                   data-poster="d-strangers-poster.webp"
+                   data-release-date="February 6, 2026"
+                   data-trailer="">
+                    <div class="movie-card">
+                        <img src="strangers-chapter-3.jpg" alt="The Strangers: Chapter 3">
+                        <p>The Strangers: Chapter 3</p>
+                    </div>
+                </a>
+
+<a href="coming-soon-details.html" class="movie-link coming-soon-movie"
+                   data-title="We Bury The Dead"
+                   data-overview="After a catastrophic military disaster, the dead don't just rise—they hunt. The military insists they are harmless and slow-moving, offering hope to grieving families. But when Ava enters a quarantine zone searching for her missing husband, she uncovers the horrifying truth: the undead are growing more violent, more relentless, and more dangerous with every passing hour."
+                   data-rating="R-13 Horror, Thriller, Science Fiction, Drama • 1h 35m"
+                   data-poster="wbtd-poster.webp"
+                   data-release-date="January 21, 2026"
+                   data-trailer="">
+                    <div class="movie-card">
+                        <img src="we-bury-the-dead.jpg" alt="We Bury The Dead">
+                        <p>We Bury The Dead</p>
+                    </div>
+                </a>
+
+                <a href="coming-soon-details.html" class="movie-link coming-soon-movie"
+                   data-title="Return to Silent Hill"
+                   data-overview="When James receives a mysterious letter from his lost love Mary, he is drawn to Silent Hill—a once-familiar town now consumed by darkness. As he searches for her, James faces monstrous creatures and unravels a terrifying truth that will push him to the edge of his sanity."
+                   data-rating="R-16 Horror, Drama, Mystery • 1h 46m"
+                   data-poster="rtsh-poster.webp"
+                   data-release-date="January 21, 2026"
+                   data-trailer="">
+                    <div class="movie-card">
+                        <img src="return-to-silent-hill.jpg" alt="Return to Silent Hill">
+                        <p>Return to Silent Hill</p>
+                    </div>
+                </a>
+
+            </div>
+
+            <button class="scroll-btn left">&lt;</button>
+            <button class="scroll-btn right">&gt;</button>
+        </section>
+
+
+        <!-- Added id="contact-us-section" -->
+        <section class="contact-us" id="contact-us-section">
+            <div class="contact-text">
+                <h2>CONTACT US</h2>
+                <p>Stay in the loop. Get the latest events and exclusive offers.</p>
+            </div>
+            <div class="contact-form-container">
+                <form class="contact-form">
+                    <label for="email-address">Email Address</label>
+                    <input type="email" id="email-address" placeholder="Email Address">
+                    <div class="captcha">
+                        <input type="checkbox" id="captcha">
+                        <label for="captcha">I am not a robot</label>
+                        <span><img src="captcha-icon.png" alt="Captcha icon"></span>
+                    </div>
+                    <div class="terms">
+                        <input type="checkbox" id="terms">
+                        <label for="terms">By checking this box you agree to the Terms of Use and Privacy Policy.</label>
+                    </div>
+                    <button type="submit" class="btn-signup-newsletter">SIGN UP</button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+<footer>
+        <nav class="footer-nav">
+            <ul>
+                <li><a href="#">Terms of Use</a></li>
+                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="#">Accessibility</a></li>
+                <li><a href="#">Cookies Settings</a></li>
+            </ul>
+        </nav>
+        <p>© 2026 Reelio, All rights reserved.</p>
+    </footer>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeLoginModal()">&times;</span>
+            <h2>Log In</h2>
+            <form id="loginForm">
+                <label for="login-email">Email Address</label>
+                <input type="email" id="login-email" name="email" required>
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" name="password" required>
+                <a href="#" class="forgot-password">Forgot Password?</a>
+                <button type="submit" class="btn-log-in">LOG IN</button>
+            </form>
+            <p class="signup-link">Don't have an account? <a href="#" onclick="openSignUpModal(); closeLoginModal();">Sign Up</a></p>
+        </div>
+    </div>
+<!-- Sign Up Modal -->
+    <div id="signUpModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeSignUpModal()">&times;</span>
+            <h2>Sign Up</h2>
+            <form id="signUpForm">
+                <label for="signup-email">Email Address</label>
+                <input type="email" id="signup-email" name="email" required>
+                <label for="signup-password">Password</label>
+                <input type="password" id="signup-password" name="password" required>
+                <label for="confirm-password">Confirm Password</label>
+                <input type="password" id="confirm-password" name="confirmPassword" required>
+                <div class="name-fields">
+                    <div>
+                        <label for="first-name">First Name</label>
+                        <input type="text" id="first-name" name="firstName" required>
+                    </div>
+                    <div>
+                        <label for="last-name">Last Name</label>
+                        <input type="text" id="last-name" name="lastName" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn-sign-up">SIGN UP</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

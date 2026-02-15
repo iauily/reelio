@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="movieDetailPageTitle">Coming Soon Movie</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="sub-header">
+        <div class="logo">
+            <a href="index.html" class="logo-link"> <!-- Link back to main page -->
+                <img src="logo.png" alt="R Logo">
+            </a>
+        </div>
+        <span class="page-title" id="detailsPageMovieTitle"></span>
+    </header>
+
+    <main class="movie-details-page">
+        <section class="movie-info-section">
+            <div class="movie-poster">
+                <img src="" alt="Movie Poster" id="movieDetailPoster">
+            </div>
+            <div class="movie-details">
+                <h2 id="movieDetailTitle"></h2>
+                <p class="rating-duration" id="movieDetailRatingDuration"></p>
+
+                <h3>Overview</h3>
+                <p class="overview-text" id="movieDetailOverview"></p>
+
+                <div class="coming-soon-info">
+                    <h3>Release Date</h3>
+                    <p id="movieDetailReleaseDate"></p>
+                </div>
+
+                <div class="movie-trailer-section">
+                    <h3>Trailer</h3>
+                    <div class="video-container">
+                        <iframe id="movieDetailTrailer" width="560" height="315" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                </div>
+
+                <!-- Optionally add a "Back to Coming Soon" button -->
+                <button class="btn-buy-now" onclick="window.history.back()">Back to Coming Soon</button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="sub-footer">
+        <nav class="footer-nav">
+            <ul>
+                <li><a href="#">Terms of Use</a></li>
+                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="#">Accessibility</a></li>
+                <li><a href="#">Cookies Settings</a></li>
+            </ul>
+        </nav>
+        <p>© 2026 Reelio, All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

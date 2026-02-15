@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Reelio</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="sub-header">
+        <div class="logo">
+            <a href="index.html" class="logo-link">
+                <img src="logo.png" alt="Reelio Logo">
+            </a>
+        </div>
+        <span class="page-title">Admin Panel</span>
+        <div class="header-actions">
+            <button class="btn-logout" onclick="handleLogout()">LOG OUT</button>
+        </div>
+    </header>
+
+    <main class="admin-page">
+        <h1>Admin Dashboard</h1>
+
+        <section class="admin-section">
+            <h2>Manage Movies</h2>
+            <div class="admin-tabs">
+                <button class="admin-tab-btn active" data-tab="addMovie">Add New Movie</button>
+                <button class="admin-tab-btn" data-tab="editMovies">Edit Existing Movies</button>
+            </div>
+
+            <div id="addMovieTab" class="tab-content active">
+                <h3>Add New Movie</h3>
+                <form id="addMovieForm" class="admin-form">
+                    <div class="form-group">
+                        <label for="movieTitle">Movie Title</label>
+                        <input type="text" id="movieTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="movieOverview">Overview</label>
+                        <textarea id="movieOverview" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="movieRating">Rating & Duration (e.g., PG-13 Action • 1h 40m)</label>
+                        <input type="text" id="movieRating" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="moviePoster">Poster Image URL (e.g., images/movie-poster.jpg)</label>
+                        <input type="text" id="moviePoster" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="movieStatus">Status</label>
+                        <select id="movieStatus" required>
+                            <option value="now-showing">Now Showing</option>
+                            <option value="coming-soon">Coming Soon</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="releaseDateGroup" style="display:none;">
+                        <label for="movieReleaseDate">Release Date (for Coming Soon)</label>
+                        <input type="date" id="movieReleaseDate">
+                    </div>
+                    <div class="form-group" id="trailerUrlGroup" style="display:none;">
+                        <label for="movieTrailerUrl">Trailer URL (YouTube Embed Link)</label>
+                        <input type="text" id="movieTrailerUrl">
+                    </div>
+                    <button type="submit" class="btn-primary">Add Movie</button>
+                </form>
+            </div>
+        </section>
+
+        <div id="editMoviesTab" class="tab-content">
+                <h3>Edit Existing Movies</h3>
+                <div class="movie-management-controls">
+                    <input type="text" id="movieSearch" placeholder="Search movies by title...">
+                    <select id="filterMovieStatus">
+                        <option value="all">All Movies</option>
+                        <option value="now-showing">Now Showing</option>
+                        <option value="coming-soon">Coming Soon</option>
+                    </select>
+                </div>
+                <div id="movieListForEditing" class="admin-movie-grid">
+                    <!-- Movie cards for editing will be loaded here by JavaScript -->
+                    <p>No movies to display yet. Add some using the "Add New Movie" tab.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- A simple modal for editing movie details (will be dynamically populated) -->
+        <div id="editMovieModal" class="modal">
+            <div class="modal-content">
+                <span class="close-button" onclick="closeEditMovieModal()">&times;</span>
+                <h2>Edit Movie</h2>
+                <form id="editMovieForm" class="admin-form">
+                    <input type="hidden" id="editMovieId">
+                    <div class="form-group">
+                        <label for="editMovieTitle">Movie Title</label>
+                        <input type="text" id="editMovieTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editMovieOverview">Overview</label>
+                        <textarea id="editMovieOverview" rows="4" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editMovieRating">Rating & Duration</label>
+                        <input type="text" id="editMovieRating" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editMoviePoster">Poster Image URL</label>
+                        <input type="text" id="editMoviePoster" required>
+                    </div>
+                     <div class="form-group">
+                        <label for="editMovieStatus">Status</label>
+                        <select id="editMovieStatus" required>
+                            <option value="now-showing">Now Showing</option>
+                            <option value="coming-soon">Coming Soon</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="editReleaseDateGroup">
+                        <label for="editMovieReleaseDate">Release Date</label>
+                        <input type="date" id="editMovieReleaseDate">
+                    </div>
+                    <div class="form-group" id="editTrailerUrlGroup">
+                        <label for="editMovieTrailerUrl">Trailer URL</label>
+                        <input type="text" id="editMovieTrailerUrl">
+                    </div>
+
+                    <h3>Showtimes</h3>
+                    <div id="editShowtimesContainer" class="showtimes-container">
+                        <!-- Showtimes will be loaded here dynamically -->
+                        <p>No showtimes set.</p>
+                    </div>
+                    <button type="button" class="btn-secondary" onclick="addShowtimeField()">Add New Showtime</button>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Save Changes</button>
+                        <button type="button" class="btn-delete" onclick="deleteMovie()">Delete Movie</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <nav class="footer-nav">
+            <ul>
+                <li><a href="#">Terms of Use</a></li>
+                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="#">Accessibility</a></li>
+                <li><a href="#">Cookies Settings</a></li>
+            </ul>
+        </nav>
+        <p>© 2026 Reelio, All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
+    </main>
+</body>
+</html>

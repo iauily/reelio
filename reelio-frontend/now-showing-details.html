@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="movieDetailPageTitle">Now Showing Movie</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="sub-header">
+        <div class="logo">
+            <a href="index.html" class="logo-link">
+                <img src="logo.png" alt="R Logo">
+            </a>
+        </div>
+        <span class="page-title" id="detailsPageMovieTitle"></span>
+    </header>
+
+    <main class="movie-details-page">
+        <section class="movie-info-section">
+            <div class="movie-poster">
+                <img src="" alt="Movie Poster" id="movieDetailPoster">
+            </div>
+            <div class="movie-details">
+                <h2 id="movieDetailTitle"></h2>
+                <p class="rating-duration" id="movieDetailRatingDuration"></p>
+
+                <h3>Overview</h3>
+                <p class="overview-text" id="movieDetailOverview"></p>
+
+                <!-- Ticket selection: Time, Date, Location -->
+                <div class="showtime-selection">
+                    <div class="dropdown">
+                        <label for="time-select">Time</label>
+                        <select id="time-select">
+                            <option value="11:00 AM">11:00 AM</option>
+                            <option value="3:30 PM">3:30 PM</option>
+                            <option value="6:00 PM">6:00 PM</option>
+                        </select>
+                    </div>
+                    <div class="dropdown">
+                        <label for="date-select">Date</label>
+                        <select id="date-select">
+                            <option value="Jan 14, 2026">Jan 14, 2026</option>
+                            <option value="Jan 15, 2026">Jan 15, 2026</option>
+                        </select>
+                    </div>
+                    <div class="dropdown">
+                        <label for="location-select">Location</label>
+                        <select id="location-select">
+                            <option value="SM San Mateo">SM San Mateo</option>
+                            <option value="SM Megamall">SM Megamall</option>
+                            <option value="Ayala Malls Feliz">Ayala Malls Feliz</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- BUY NOW button at the bottom -->
+                <button class="btn-buy-now" id="buyNowButton" style="margin-top: 30px;">BUY NOW</button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="sub-footer">
+        <nav class="footer-nav">
+            <ul>
+                <li><a href="#">Terms of Use</a></li>
+                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="#">Accessibility</a></li>
+                <li><a href="#">Cookies Settings</a></li>
+            </ul>
+        </nav>
+        <p>© 2026 Reelio, All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        // Populate movie details from localStorage
+        const movie = JSON.parse(localStorage.getItem('nowShowingMovie'));
+        if (movie) {
+            document.getElementById('detailsPageMovieTitle').textContent = movie.title;
+            document.getElementById('movieDetailPoster').src = movie.poster;
+            document.getElementById('movieDetailPoster').alt = movie.title + " Poster";
+            document.getElementById('movieDetailTitle').textContent = movie.title;
+            document.getElementById('movieDetailRatingDuration').textContent = movie.rating;
+            document.getElementById('movieDetailOverview').textContent = movie.overview;
+            document.title = movie.title + " | Reelio";
+        }
+
+        // Handle BUY NOW click: save selected time, date, location and redirect
+        const buyButton = document.getElementById('buyNowButton');
+        if (buyButton && movie) {
+            buyButton.addEventListener('click', () => {
+                const selectedTime = document.getElementById('time-select').value;
+                const selectedDate = document.getElementById('date-select').value;
+                const selectedLocation = document.getElementById('location-select').value;
+
+                // Save booking details to localStorage
+                const bookingDetails = {
+                    title: movie.title,
+                    poster: movie.poster,
+                    rating: movie.rating,
+                    location: selectedLocation,
+                    date: selectedDate,
+                    time: selectedTime
+                };
+                localStorage.setItem('selectedBooking', JSON.stringify(bookingDetails));
+
+                // Redirect to Buy Tickets page
+                window.location.href = "buy-tickets.html";
+            });
+        }
+    </script>
+</body>
+</html>
