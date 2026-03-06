@@ -6,6 +6,25 @@
     <title>Payment - Reelio</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="shortcut icon" href="logo.png" type="image/png">
+    <style>
+        /* Style Addition for QR Code Realism */
+        .gcash-qr-container {
+            text-align: center;
+            padding: 20px;
+            border: 1px dashed #ffcc00;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .qr-code-img {
+            width: 200px;
+            height: 200px;
+            margin: 15px auto;
+            display: block;
+            background-color: white; /* To make placeholder visible */
+            border: 2px solid #000;
+        }
+    </style>
 </head>
 <body>
     <header class="sub-header">
@@ -38,6 +57,7 @@
             <div class="payment-options">
                 <button class="payment-option-btn active" data-payment-method="card">Credit/Debit Card</button>
                 <button class="payment-option-btn" data-payment-method="gcash">GCash</button>
+                <button class="payment-option-btn" data-payment-method="cash">Cash on Counter</button>
             </div>
 
             <form id="cardPaymentForm" class="payment-form active">
@@ -75,16 +95,39 @@
             </form>
 
             <form id="gcashPaymentForm" class="payment-form" style="display:none;">
-                <div class="form-group">
-                    <label for="gcash-number">GCash Registered Phone Number</label>
-                    <input type="tel" id="gcash-number" placeholder="e.g., 0917xxxxxxx" required pattern="09[0-9]{9}" maxlength="11">
+                
+                <!-- NEW: QR Code Display Area -->
+                <div class="gcash-qr-container">
+                    <p>Scan this QR code using your GCash App to complete the payment of <strong id="gcashAmountDisplay">₱0.00</strong>.</p>
+                    <!-- IMPORTANT: Replace 'gcash-qr-placeholder.png' with the actual generated QR code URL/base64 data in script.js -->
+                    <img src="reelio-gcash.jpg" alt="GCash QR Code" id="gcashQrCode" class="qr-code-img">
                 </div>
-                <p class="gcash-instruction">You will be redirected to the GCash app/website to complete your payment.</p>
+                
+                <p class="gcash-instruction">Once you approve the payment in your GCash app, click the button below to confirm.</p>
+                
+                <!-- Optional: Keep phone number for Manual Confirmation/Redirect -->
+                <div class="form-group">
+                    <label for="gcash-number">GCash Registered Phone Number (Optional)</label>
+                    <input type="tel" id="gcash-number" placeholder="e.g., 0917xxxxxxx" pattern="09[0-9]{9}" maxlength="11">
+                </div>
+                
                 <div class="payment-actions">
-                    <button type="submit" class="btn-confirm-payment">PAY WITH GCASH</button>
+                    <!-- CHANGED: Button type to 'button' and added ID for JS hook -->
+                    <button type="button" class="btn-confirm-payment" id="confirmGcashScan">CONFIRM SCAN & PAY</button>
                     <button type="button" class="btn-cancel-payment" onclick="window.history.back()">CANCEL</button>
                 </div>
             </form>
+
+            <form id="cashPaymentForm" class="payment-form" style="display:none;"> <!-- NEW FORM -->
+                <div class="form-group">
+                    <p>Your total payment of <strong id="cashAmountDisplay">₱0.00</strong> will be collected at the cinema counter upon ticket presentation. Please be sure to bring the exact amount.</p>
+                </div>
+                <div class="payment-actions">
+                    <button type="submit" class="btn-confirm-payment">CONFIRM BOOKING (PAY AT COUNTER)</button> <!-- NEW BUTTON -->
+                    <button type="button" class="btn-cancel-payment" onclick="window.history.back()">CANCEL</button>
+                </div>
+            </form>
+            
         </section>
     </main>
 
