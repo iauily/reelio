@@ -36,7 +36,7 @@ window.addEventListener('click', function(event) {
 });
 
 /***********************
- * USER AUTHENTICATION (CONNECTED TO SERVER)
+ * USER AUTHENTICATION & HEADER UI
  ***********************/
 
 // Elements from the header
@@ -46,9 +46,7 @@ const loggedInUsernameSpan = document.getElementById('loggedInUsername');
 const myBookingsNavLink = document.getElementById('myBookingsNavLink');
 const adminNavLink = document.getElementById('adminNavLink');
 
-const SERVER_URL = 'http://localhost:3000'; // Define server URL once
-
-// Function to update the header based on login status
+// Function to update the header based on login status (DEFINED FIRST)
 function updateHeaderUI(user) {
     if (user) {
         authActionsDiv.style.display = 'none';
@@ -71,14 +69,26 @@ function updateHeaderUI(user) {
     }
 }
 
-// Handle Login Form Submission
+// Handle Logout (DEFINED FIRST)
+window.handleLogout = function() {
+    localStorage.removeItem('currentUser');
+    if (authActionsDiv) updateHeaderUI(null);
+    alert('You have been logged out.');
+    if (location.pathname.includes('my-bookings.html') || location.pathname.includes('admin.html')) {
+        window.location.href = 'index.html';
+    }
+};
+
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Handle Login Form Submission
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
         loginForm.addEventListener('submit', async function(event) {
             event.preventDefault();
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
+            const SERVER_URL = 'http://localhost:3000';
 
             try {
                 const response = await fetch(`${SERVER_URL}/api/login`, {
@@ -93,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (authActionsDiv) updateHeaderUI(data.user);
                     closeLoginModal();
                     alert('Login successful!');
+                    window.location.reload(); 
                 } else {
                     alert(`Login failed: ${data.message || 'Check server logs'}`);
                 }
@@ -119,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Passwords do not match!');
                 return;
             }
+            const SERVER_URL = 'http://localhost:3000';
 
             try {
                 const response = await fetch(`${SERVER_URL}/api/register`, {
@@ -133,6 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (authActionsDiv) updateHeaderUI(data.user);
                     closeSignUpModal();
                     alert(`Welcome, ${firstName}! Your account has been created and you are now logged in.`);
+                    window.location.reload(); 
                 } else {
                     alert(`Registration failed: ${data.message || 'Check server logs'}`);
                 }
@@ -144,60 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
             signUpForm.reset();
         });
     }
-
-    // ===========================================================
-    // *** NEW: ADMIN MOVIE FORM SUBMISSION HANDLER ***
-    // ===========================================================
-    const addMovieForm = document.getElementById('addMovieForm');
-    if (addMovieForm) {
-        addMovieForm.addEventListener('submit', async function(event) {
-            event.preventDefault();
-            
-            // Collect data from the Add Movie Form fields
-            const movieData = {
-                title: document.getElementById('movieTitle').value,
-                overview: document.getElementById('movieOverview').value,
-                rating_duration: document.getElementById('movieRating').value,
-                poster_url: document.getElementById('moviePoster').value,
-                status: document.getElementById('movieStatus').value,
-                release_date: document.getElementById('movieReleaseDate').value,
-                trailer_url: document.getElementById('movieTrailerUrl').value
-            };
-
-            try {
-                const response = await fetch(`${SERVER_URL}/api/admin/movie`, { // <<< Calling the server POST route
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(movieData)
-                });
-                const result = await response.json();
-
-                if (response.ok) {
-                    alert(`Success! Movie added with ID: ${result.movieId}`);
-                    addMovieForm.reset();
-                } else {
-                    alert(`Movie addition failed: ${result.message || 'Unknown Server Error'}`);
-                }
-            } catch (error) {
-                console.error("Admin Movie Add Fetch Error:", error);
-                alert('Could not connect to the admin server.');
-            }
-        });
-    }
-    // ===========================================================
-
-
-    // Handle Logout
-    window.handleLogout = function() {
-        localStorage.removeItem('currentUser');
-        if (authActionsDiv) updateHeaderUI(null);
-        alert('You have been logged out.');
-        if (location.pathname.includes('my-bookings.html') || location.pathname.includes('admin.html')) {
-            window.location.href = 'index.html';
-        }
-    };
-
-    // Check login status on page load (important for persistence)
+    
+    // Check login status on page load (CALLS THE DEFINED FUNCTION)
     const storedUser = JSON.parse(localStorage.getItem('currentUser'));
     if (authActionsDiv) updateHeaderUI(storedUser);
 });
@@ -218,7 +179,7 @@ if (slides.length > 1) {
 /***********************
  * NOW SHOWING / COMING SOON LISTS (Index Page)
  ***********************/
-function renderMovies(movies, listSelector, detailPageLink, movieType) {
+function renderMovies(movies, listSelector, movieType) {
     const movieListContainer = document.querySelector(listSelector);
     if (!movieListContainer) return;
 
@@ -231,7 +192,8 @@ function renderMovies(movies, listSelector, detailPageLink, movieType) {
             rating: movieData.rating_duration,
             poster: movieData.poster_url,
             releaseDate: movieData.release_date,
-            trailer: movieData.trailer_url
+            trailer: movieData.trailer_url,
+            movieId: movieData.movie_id // PASSED MOVIE ID HERE
         };
         
         const movieLink = document.createElement('a');
@@ -253,11 +215,13 @@ function renderMovies(movies, listSelector, detailPageLink, movieType) {
         movieLink.onclick = e => {
             e.preventDefault();
             const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            
             if (!currentUser && movieType === 'now-showing') {
                 alert('Please sign in to view movie details and book tickets.');
                 openLoginModal();
                 return;
             }
+            
             localStorage.setItem('nowShowingMovie', JSON.stringify(movieDataset));
             localStorage.setItem('comingSoonMovie', JSON.stringify(movieDataset));
             location.href = movieLink.href;
@@ -269,14 +233,15 @@ function renderMovies(movies, listSelector, detailPageLink, movieType) {
 
 
 async function loadMovies() {
+    const SERVER_URL = 'http://localhost:3000';
     try {
         const nowShowingRes = await fetch(`${SERVER_URL}/api/movies?status=now-showing`);
         const nowShowingData = await nowShowingRes.json();
-        renderMovies(nowShowingData, '.now-showing .movie-list', 'now-showing-movie', 'now-showing');
+        renderMovies(nowShowingData, '.now-showing .movie-list', 'now-showing');
 
         const comingSoonRes = await fetch(`${SERVER_URL}/api/movies?status=coming-soon`);
         const comingSoonData = await comingSoonRes.json();
-        renderMovies(comingSoonData, '.coming-soon .movie-list', 'coming-soon-movie', 'coming-soon');
+        renderMovies(comingSoonData, '.coming-soon .movie-list', 'coming-soon');
         
     } catch (error) {
         console.error("Failed to load movies from server:", error);
@@ -287,7 +252,6 @@ async function loadMovies() {
 if (location.pathname.includes('index.html') || location.pathname === '/') {
     loadMovies(); 
     
-    // Scroll button logic
     document.querySelectorAll('.scroll-btn').forEach(button => {
         button.addEventListener('click', () => {
             const movieList = button.closest('section').querySelector('.movie-list');
@@ -302,20 +266,61 @@ if (location.pathname.includes('index.html') || location.pathname === '/') {
 }
 
 /***********************
- * MOVIE DETAILS PAGES
+ * HERO SLIDESHOW TRAILER FUNCTIONALITY
+ ***********************/
+
+function playTrailer(buttonElement) {
+    // 1. Find the closest parent element that is a .hero-slide
+    const slide = buttonElement.closest('.hero-slide');
+    
+    if (slide) {
+        // 2. Get the trailer URL from the data attribute
+        const trailerUrl = slide.dataset.trailerUrl;
+
+        if (trailerUrl) {
+            // Opens the trailer URL (which should include ?autoplay=1) in a new tab
+            window.open(trailerUrl, '_blank'); 
+        } else {
+            console.warn("Trailer URL not found for this slide.");
+            alert("Sorry, the trailer link is not yet configured for this slide.");
+        }
+    }
+}
+
+// --- END Trailer Functionality ---
+
+/***********************
+ * MOVIE DETAILS PAGES (Now Showing & Coming Soon)
  ***********************/
 if (location.pathname.includes('now-showing-details.html')) {
     const movie = JSON.parse(localStorage.getItem('nowShowingMovie'));
     if (movie) {
-        const posterEl = document.getElementById('movieDetailPoster');
-        const titleEl = document.getElementById('movieDetailTitle');
-        const ratingEl = document.getElementById('movieDetailRatingDuration');
-        const overviewEl = document.getElementById('movieDetailOverview');
+        document.getElementById('detailsPageMovieTitle').textContent = movie.title;
+        document.getElementById('movieDetailPoster').src = movie.poster;
+        document.getElementById('movieDetailPoster').alt = movie.title + " Movie Poster";
+        document.getElementById('movieDetailTitle').textContent = movie.title;
+        document.getElementById('movieDetailRatingDuration').textContent = movie.rating;
+        document.getElementById('movieDetailOverview').textContent = movie.overview;
+        document.title = movie.title + " | Reelio";
+        
+        const buyButton = document.getElementById('buyNowButton');
+        buyButton.addEventListener('click', () => {
+            const selectedTime = document.getElementById('time-select').value;
+            const selectedDate = document.getElementById('date-select').value;
+            const selectedLocation = document.getElementById('location-select').value;
 
-        if (posterEl) posterEl.src = movie.poster;
-        if (titleEl) titleEl.textContent = movie.title;
-        if (ratingEl) ratingEl.textContent = movie.rating;
-        if (overviewEl) overviewEl.textContent = movie.overview;
+            const bookingDetails = {
+                title: movie.title,
+                poster: movie.poster,
+                rating: movie.rating,
+                location: selectedLocation,
+                date: selectedDate,
+                time: selectedTime
+            };
+            localStorage.setItem('selectedBooking', JSON.stringify(bookingDetails));
+            window.location.href = "buy-tickets.html";
+        });
+        
     } else {
         document.querySelector('.movie-details-page').innerHTML = `<div style="text-align:center; padding:50px; margin-top: 100px;"><h2>No Movie Selected</h2><p>Please go back to the <a href="index.html">Now Showing</a> page to select a movie.</p></div>`;
     }
@@ -324,19 +329,21 @@ if (location.pathname.includes('now-showing-details.html')) {
 if (location.pathname.includes('coming-soon-details.html')) {
     const movie = JSON.parse(localStorage.getItem('comingSoonMovie'));
     if (movie) {
-        const posterEl = document.getElementById('movieDetailPoster');
-        const titleEl = document.getElementById('movieDetailTitle');
-        const ratingEl = document.getElementById('movieDetailRatingDuration');
-        const overviewEl = document.getElementById('movieDetailOverview');
-        const releaseEl = document.getElementById('movieDetailReleaseDate');
-        const trailerEl = document.getElementById('movieDetailTrailer'); 
-
-        if (posterEl) posterEl.src = movie.poster;
-        if (titleEl) titleEl.textContent = movie.title;
-        if (ratingEl) ratingEl.textContent = movie.rating;
-        if (overviewEl) overviewEl.textContent = movie.overview;
-        if (releaseEl) releaseEl.textContent = movie.releaseDate || 'N/A';
-        if (trailerEl && movie.trailer) trailerEl.src = movie.trailer;
+        document.getElementById('detailsPageMovieTitle').textContent = movie.title;
+        document.getElementById('movieDetailPoster').src = movie.poster;
+        document.getElementById('movieDetailPoster').alt = movie.title + " Poster";
+        document.getElementById('movieDetailTitle').textContent = movie.title;
+        document.getElementById('movieDetailRatingDuration').textContent = movie.rating;
+        document.getElementById('movieDetailOverview').textContent = movie.overview;
+        document.getElementById('movieDetailReleaseDate').textContent = movie.releaseDate || 'Release date not set';
+        
+        const trailerEl = document.getElementById('movieDetailTrailer');
+        if (trailerEl && movie.trailer) {
+             trailerEl.src = movie.trailer;
+        } else if (trailerEl) {
+             trailerEl.parentElement.innerHTML = `<p style="color:#bbb;">Trailer not available.</p>`;
+        }
+        document.title = movie.title + " | Reelio";
     } else {
         document.querySelector('.movie-details-page').innerHTML = `<div style="text-align:center; padding:50px; margin-top: 100px;"><h2>No Coming Soon Movie Selected</h2><p>Please go back to the <a href="index.html">Coming Soon</a> page to select a movie.</p></div>`;
     }
@@ -378,12 +385,19 @@ if (location.pathname.includes('buy-tickets.html')) {
         const btnProceedToPayment = document.getElementById('btnProceedToPayment');
 
         function updateBookingSummary() {
-            selectedSeatsDisplay.textContent = selectedSeats.length > 0 ? selectedSeats.sort().join(', ') : 'None';
-            totalPriceDisplay.textContent = totalPrice.toFixed(2);
-            btnProceedToPayment.disabled = selectedSeats.length === 0;
-        }
+    const selectedSeatsDisplay = document.getElementById('selectedSeatsDisplay');
+    const totalPriceDisplay = document.getElementById('totalPriceDisplay');
+    const btnProceedToPayment = document.getElementById('btnProceedToPayment');
+    
+    const seatPrice = 350.00;
+    let totalPrice = selectedSeats.length * seatPrice; 
 
-        const occupiedSeats = ['A3','A4','B5','C1','C2','D8','D9','G10'];
+    selectedSeatsDisplay.textContent = selectedSeats.length > 0 ? selectedSeats.sort().join(', ') : 'None';
+    totalPriceDisplay.textContent = totalPrice.toFixed(2);
+    btnProceedToPayment.disabled = selectedSeats.length === 0;
+}
+
+        const occupiedSeats = ['A3','A4','B5','C1','C2','D8','D9','G10']; 
 
         rows.forEach(row => {
             for (let i=1; i<=numSeatsPerRow; i++){
@@ -402,6 +416,10 @@ if (location.pathname.includes('buy-tickets.html')) {
                             selectedSeats = selectedSeats.filter(s => s !== seatId);
                             totalPrice -= seatPrice;
                         } else {
+                            if (selectedSeats.length >= 8) {
+                                alert("You can only select a maximum of 8 seats at a time.");
+                                return;
+                            }
                             seat.classList.add('selected');
                             selectedSeats.push(seatId);
                             totalPrice += seatPrice;
@@ -419,18 +437,17 @@ if (location.pathname.includes('buy-tickets.html')) {
             if (selectedSeats.length > 0) {
                 const currentUser = JSON.parse(localStorage.getItem('currentUser'));
                 
-                // *** FIX: Ensure userId is set, or stop execution ***
                 if (!currentUser) {
                     alert('Please sign in to proceed with payment.');
                     openLoginModal();
-                    return; // <<< THIS STOPS THE FLOW if not logged in
+                    return;
                 }
 
                 const finalBooking = {
                     ...selectedBooking, 
                     selectedSeats: selectedSeats,
                     totalPrice: totalPrice,
-                    userId: currentUser.email // <<< GUARANTEED to have the email if we passed the check above
+                    userId: currentUser.email
                 };
                 localStorage.setItem('finalBooking', JSON.stringify(finalBooking));
                 window.location.href = 'payment.html';
@@ -445,7 +462,7 @@ if (location.pathname.includes('buy-tickets.html')) {
 }
 
 /***********************
- * PAYMENT PAGE
+ * PAYMENT PAGE (UPDATED WITH QR LOGIC)
  ***********************/
 if (location.pathname.includes('payment.html')) {
     const finalBooking = JSON.parse(localStorage.getItem('finalBooking'));
@@ -461,6 +478,12 @@ if (location.pathname.includes('payment.html')) {
         document.getElementById('paymentSelectedSeats').textContent = finalBooking.selectedSeats.join(', ');
         document.getElementById('paymentTotalAmount').textContent = `₱${parseFloat(finalBooking.totalPrice).toFixed(2)}`;
 
+        // *** NEW: Update GCash display when total amount is set ***
+        const gcashAmountDisplay = document.getElementById('gcashAmountDisplay');
+        if (gcashAmountDisplay) {
+            gcashAmountDisplay.textContent = `₱${parseFloat(finalBooking.totalPrice).toFixed(2)}`;
+        }
+        
         // Payment method selection logic
         const paymentOptionBtns = document.querySelectorAll('.payment-option-btn');
         const cardPaymentForm = document.getElementById('cardPaymentForm');
@@ -490,10 +513,21 @@ if (location.pathname.includes('payment.html')) {
             processPayment(finalBooking, 'Card');
         });
 
-        // Handle GCash Payment Form Submission
-        gcashPaymentForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            processPayment(finalBooking, 'GCash');
+        // *** MODIFIED: Handle GCash Payment Submission for QR Scan Simulation ***
+        const confirmGcashScanBtn = document.getElementById('confirmGcashScan');
+        confirmGcashScanBtn.addEventListener('click', function() {
+            
+            // Temporarily disable button to prevent spamming and show loading state
+            confirmGcashScanBtn.disabled = true;
+            confirmGcashScanBtn.textContent = 'Scanning & Waiting for Approval...';
+
+            // Simulate successful payment confirmation after a brief period (3 seconds)
+            setTimeout(() => {
+                // Simulate successful payment confirmation from the gateway
+                processPayment(finalBooking, 'GCash (QR Scan)'); 
+                // Note: The processPayment will trigger the redirect, so re-enabling is less critical
+                confirmGcashScanBtn.disabled = false; 
+            }, 3000); 
         });
 
     } else {
@@ -505,14 +539,11 @@ if (location.pathname.includes('payment.html')) {
 async function processPayment(bookingDetails, paymentMethod) {
     const SERVER_URL = 'http://localhost:3000';
 
-    // *** GET THE USER EMAIL DIRECTLY FROM LOCAL STORAGE ***
-    // This ensures we have *some* ID, even if it's a guest ID, preventing the 400 error.
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    const userEmail = currentUser ? currentUser.email : 'guest_booking_' + Date.now(); // *** FALLBACK USER ***
-
-    // Prepare the data package for the server
+    const userEmail = currentUser ? currentUser.email : 'guest_booking_' + Date.now();
+    
     const bookingDataForServer = {
-        userId: userEmail, // <<< CORRECTED: Use the retrieved/fallback email as userId
+        userId: userEmail,
         title: bookingDetails.title,
         location: bookingDetails.location,
         date: bookingDetails.date,
@@ -534,7 +565,6 @@ async function processPayment(bookingDetails, paymentMethod) {
         const result = await response.json();
 
         if (response.ok) {
-            // SUCCESS: Server saved the booking and returned an ID
             const successfulBooking = {
                 ...bookingDetails,
                 paymentMethod: paymentMethod,
@@ -543,7 +573,7 @@ async function processPayment(bookingDetails, paymentMethod) {
             
             localStorage.setItem('lastSuccessfulBooking', JSON.stringify(successfulBooking));
 
-            // For "View My Bookings" feature: save this booking to the user's history (local simulation)
+            // Simulate saving to user's history in localStorage
             let userBookings = JSON.parse(localStorage.getItem(`bookings_${userEmail}`)) || [];
             userBookings.push(successfulBooking);
             localStorage.setItem(`bookings_${userEmail}`, JSON.stringify(userBookings));
@@ -554,13 +584,22 @@ async function processPayment(bookingDetails, paymentMethod) {
             window.location.href = 'payment-success.html';
 
         } else {
-            // FAILED: Server returned an error
             alert(`Booking failed on server side: ${result.message || 'Unknown Server Error'}`);
+            // Re-enable button if payment failed on the backend
+            if(paymentMethod.includes('GCash')) {
+                document.getElementById('confirmGcashScan').textContent = 'CONFIRM SCAN & PAY';
+                document.getElementById('confirmGcashScan').disabled = false;
+            }
         }
 
     } catch (error) {
         console.error("Error submitting booking:", error);
         alert('Could not connect to the booking server. Please check the console and ensure the server is running.');
+        // Re-enable button if network failed
+        if(paymentMethod.includes('GCash')) {
+            document.getElementById('confirmGcashScan').textContent = 'CONFIRM SCAN & PAY';
+            document.getElementById('confirmGcashScan').disabled = false;
+        }
     }
 }
 
@@ -582,7 +621,7 @@ if (location.pathname.includes('payment-success.html')) {
             document.getElementById('successTotalAmount').textContent = `₱${isNaN(totalPaid) ? '0.00' : totalPaid.toFixed(2)}`;
             
             const bookingIdEl = document.getElementById('successBookingId');
-            if (bookingIdEl && booking.bookingId) {
+            if (bookingIdEl && (booking.bookingId || booking.booking_id)) {
                 bookingIdEl.textContent = booking.booking_id || booking.bookingId;
                 const bookingIdRow = bookingIdEl.closest('.summary-item');
                 if (bookingIdRow) bookingIdRow.style.display = 'flex';
@@ -594,18 +633,13 @@ if (location.pathname.includes('payment-success.html')) {
                 const paymentMethodRow = paymentMethodEl.closest('.summary-item');
                 if (paymentMethodRow) paymentMethodRow.style.display = 'flex';
             }
+            
+            localStorage.removeItem('lastSuccessfulBooking'); 
+
         } else {
-            console.warn('No successful booking details found in localStorage for the success page. Redirecting to home.');
             document.querySelector('.success-card').innerHTML = `<h2>No Booking Information Found</h2><p>It seems there was an issue retrieving your booking details. Please <a href="index.html">return to the home page</a> to start a new booking.</p><button class="btn-go-home" onclick="location.href='index.html'">Return to Home</button>`;
         }
     });
-
-    const viewBookingsBtn = document.querySelector('.btn-view-bookings');
-    if (viewBookingsBtn) {
-        viewBookingsBtn.addEventListener('click', function() {
-            window.location.href = 'my-bookings.html';
-        });
-    }
 }
 
 /***********************
@@ -618,6 +652,7 @@ if (location.pathname.includes('my-bookings.html')) {
         const loginPromptMessage = document.getElementById('loginPromptMessage');
         
         const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        const SERVER_URL = 'http://localhost:3000';
 
         if (!currentUser) {
             loginPromptMessage.style.display = 'block';
@@ -626,27 +661,31 @@ if (location.pathname.includes('my-bookings.html')) {
         }
         
         try {
-            // *** NEW: Fetch bookings from the server ***
             const response = await fetch(`${SERVER_URL}/api/bookings/${currentUser.email}`);
             const userBookings = await response.json();
 
-            if (userBookings.length === 0) {
+            if (userBookings.length === 0 || userBookings.message) {
                 noBookingsMessage.style.display = 'block';
+                if (userBookings.message) noBookingsMessage.innerHTML = `<p>Error: ${userBookings.message}</p><a href="index.html" class="btn-go-home">Browse Movies</a>`;
             } else {
                 noBookingsMessage.style.display = 'none';
                 userBookings.forEach(booking => {
                     const bookingCard = document.createElement('div');
                     bookingCard.classList.add('booking-card');
+                    
+                    const dateTime = booking.formatted_datetime || booking.date_time;
+
                     bookingCard.innerHTML = `
                         <img src="${booking.poster_url || 'logo.png'}" alt="${booking.movie_title} Poster">
                         <div class="booking-info">
                             <h3>${booking.movie_title}</h3>
                             <p><strong>Booking ID:</strong> ${booking.booking_id}</p> 
                             <p><strong>Location:</strong> ${booking.location}</p>
-                            <p><strong>Date & Time:</strong> ${booking.date_time}</p>
+                            <p><strong>Date & Time:</strong> ${dateTime}</p>
                             <p><strong>Seats:</strong> ${booking.seats}</p>
                             <p><strong>Payment:</strong> ${booking.payment_method}</p>
                             <p class="total-price"><strong>Total:</strong> ₱${parseFloat(booking.total_price).toFixed(2)}</p>
+                            <button class="btn-secondary" onclick="alert('Cancellation/Refund feature for user bookings is not yet implemented in the backend.')" style="margin-top: 10px;">Request Cancellation</button>
                         </div>
                     `;
                     bookingsListDiv.appendChild(bookingCard);
@@ -655,19 +694,18 @@ if (location.pathname.includes('my-bookings.html')) {
         } catch (error) {
             console.error("Error fetching user bookings from server:", error);
             noBookingsMessage.style.display = 'block';
-            noBookingsMessage.innerHTML = `<p>Error loading bookings. Server may be down or email not found.</p><a href="index.html" class="btn-go-home" style="text-decoration: none;">Browse Movies</a>`;
+            noBookingsMessage.innerHTML = `<p>Connection Error: Could not reach the server to load bookings.</p><a href="index.html" class="btn-go-home">Browse Movies</a>`;
         }
     });
 }
 
-
-// ===============================================================
-// --- TEST CONNECTION (Keep this for initial server test) ---
-// ===============================================================
-
+/***********************
+ * TEST CONNECTION (Keep this for initial server test)
+ ***********************/
 if (location.pathname.includes('index.html') || location.pathname === '/') {
     
     async function testDatabaseConnection() {
+        const SERVER_URL = 'http://localhost:3000';
         console.log("Attempting to connect to backend server...");
         try {
             const response = await fetch(`${SERVER_URL}/api/test`);
@@ -679,8 +717,6 @@ if (location.pathname.includes('index.html') || location.pathname === '/') {
             const data = await response.json();
             
             console.log("✅ SUCCESS: Backend connected to Database!");
-            console.log("Server Message:", data.message);
-            console.log("Data Retrieved:", data.data);
 
             const header = document.querySelector('.main-header');
             if (header) {
@@ -688,7 +724,6 @@ if (location.pathname.includes('index.html') || location.pathname === '/') {
                 testDiv.innerHTML = `<p style="color:#ffcc00; text-align:center; padding: 5px 0; margin: 0;">DB Status: CONNECTED</p>`;
                 header.insertAdjacentElement('afterend', testDiv);
             }
-
 
         } catch (error) {
             console.error("❌ FAILED: Could not connect to backend server or DB.", error);
@@ -702,18 +737,47 @@ if (location.pathname.includes('index.html') || location.pathname === '/') {
     }
 
     testDatabaseConnection();
+}
+
+// --- FOR CONTACT US PAGE SUBMISSION ---
+// Add this block to the VERY END of your existing script.js file
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Get the form element by its ID
+    const contactForm = document.getElementById('contactForm'); 
     
-    // Scroll button logic
-    document.querySelectorAll('.scroll-btn').forEach(button => {
-        button.addEventListener('click', () => {
-            const movieList = button.closest('section').querySelector('.movie-list');
-            const scrollAmount = 300;
-            if (button.classList.contains('left')) {
-                movieList.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-            } else {
-                movieList.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    if (contactForm) {
+        contactForm.addEventListener('submit', async function(e) {
+            e.preventDefault(); // Stop the default browser submission
+            
+            // 2. Get the email value from the input field (MUST match the ID in the HTML)
+            const emailInput = document.getElementById('emailAddress'); 
+            if (!emailInput || !emailInput.value) {
+                alert('Please enter your email address.');
+                return;
+            }
+
+            const SERVER_URL = 'http://localhost:3000';
+            const formData = { emailAddress: emailInput.value }; // Data sent to server
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/contact`, { // <-- NEW SERVER ENDPOINT
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('Thank you for signing up!');
+                    contactForm.reset();
+                } else {
+                    alert(`Submission failed: ${result.message || 'Server error'}`);
+                }
+            } catch (error) {
+                console.error("Contact Form Fetch Error:", error);
+                alert('Could not connect to the server to submit.');
             }
         });
-    });
-}
-// ===============================================================```
+    }
+});
