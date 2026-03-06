@@ -6,6 +6,7 @@
     <title>Buy Tickets - Reelio</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="shortcut icon" href="logo.png" type="image/png">
 </head>
 <body>
     <header class="sub-header">
@@ -63,93 +64,160 @@
     </footer>
 
     <script>
-        // Get the selected booking from localStorage
-        const booking = JSON.parse(localStorage.getItem('selectedBooking'));
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get the selected booking from localStorage (passed from the previous page)
+            const booking = JSON.parse(localStorage.getItem('selectedBooking'));
+            const SERVER_URL = 'http://localhost:3000';
 
-        if (booking) {
-            // Populate the summary
-            document.getElementById('summaryPoster').src = booking.poster;
-            document.getElementById('summaryPoster').alt = booking.title + " Poster";
-            document.getElementById('summaryMovieTitle').textContent = booking.title;
-            document.getElementById('summaryLocation').textContent = booking.location;
-            document.getElementById('summaryDate').textContent = booking.date;
-            document.getElementById('summaryTime').textContent = booking.time;
-            document.getElementById('summaryRating').textContent = booking.rating;
-        } else {
-            // Fallback if no booking exists
-            document.querySelector('.buy-tickets-page').innerHTML = `
-                <div style="text-align:center; padding:50px;">
-                    <h2>No Movie Selected</h2>
-                    <p>Please go back to the <a href="index.html">Now Showing</a> page and select a movie.</p>
-                    <button onclick="window.location.href='index.html'" style="margin-top:20px;">Back</button>
-                </div>
-            `;
-        }
+            // --- Global Seat Selection Variables ---
+            const rows = ['A','B','C','D','E','F','G'];
+            const seatsPerRow = 10;
+            let selectedSeats = []; 
+            let totalPrice = 0;     
+            
+            // --- Function to update summary displays and button state ---
+            function updateBookingSummary() {
+                const selectedSeatsDisplay = document.getElementById('selectedSeatsDisplay');
+                const totalPriceDisplay = document.getElementById('totalPriceDisplay');
+                const btnProceedToPayment = document.getElementById('btnProceedToPayment');
+                
+                const seatPrice = 350.00; // Price per seat
+                totalPrice = selectedSeats.length * seatPrice; 
 
-        // Seat Selection
-        const seatingChart = document.getElementById('seatingChart');
-        const rows = ['A','B','C','D','E','F','G'];
-        const seatsPerRow = 10;
-        const seatPrice = 350.00;
-        let selectedSeats = [];
-        let totalPrice = 0;
+                selectedSeatsDisplay.textContent = selectedSeats.length > 0 ? selectedSeats.sort().join(', ') : 'None';
+                totalPriceDisplay.textContent = totalPrice.toFixed(2);
+                btnProceedToPayment.disabled = selectedSeats.length === 0;
+            }
+            
+            function initializeBuyTicketsPage() {
+                if (!booking) {
+                    document.querySelector('.buy-tickets-page').innerHTML = `
+                        <div style="text-align:center; padding:50px;">
+                            <h2>No Movie Selected</h2>
+                            <p>Please go back to the <a href="index.html">Now Showing</a> page and select a movie.</p>
+                            <button onclick="window.location.href='index.html'" style="margin-top:20px;">Back</button>
+                        </div>
+                    `;
+                    return;
+                }
 
-        const selectedSeatsDisplay = document.getElementById('selectedSeatsDisplay');
-        const totalPriceDisplay = document.getElementById('totalPriceDisplay');
-        const btnProceedToPayment = document.getElementById('btnProceedToPayment');
+                // --- Populate static summary details on the left side ---
+                const posterEl = document.getElementById('summaryPoster');
+                if (posterEl) {
+                    posterEl.src = booking.poster;
+                    posterEl.alt = booking.title + " Poster";
+                }
+                document.getElementById('summaryMovieTitle').textContent = booking.title;
+                document.getElementById('summaryLocation').textContent = booking.location;
+                
+                // Format the YYYY-MM-DD date nicely for display
+                let displayDate = booking.date;
+                try {
+                    const dateObj = new Date(booking.date + 'T00:00:00');
+                    if (!isNaN(dateObj)) {
+                        displayDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    }
+                } catch(e) {}
 
-        function updateBookingSummary() {
-            selectedSeatsDisplay.textContent = selectedSeats.length > 0 ? selectedSeats.sort().join(', ') : 'None';
-            totalPriceDisplay.textContent = totalPrice.toFixed(2);
-            btnProceedToPayment.disabled = selectedSeats.length === 0;
-        }
-
-        const occupiedSeats = ['A3','A4','B5','C1','C2','D8','D9','G10']; // Example occupied seats
-
-        rows.forEach(row => {
-            for(let i=1; i<=seatsPerRow; i++){
-                const seatId = `${row}${i}`;
-                const seat = document.createElement('div');
-                seat.classList.add('seat');
-                seat.textContent = i;
-                seat.dataset.seatId = seatId;
-
-                if(occupiedSeats.includes(seatId)){
-                    seat.classList.add('occupied');
-                } else {
-                    seat.addEventListener('click', ()=>{
-                        if(seat.classList.contains('selected')){
-                            seat.classList.remove('selected');
-                            selectedSeats = selectedSeats.filter(s=>s!==seatId);
-                            totalPrice -= seatPrice;
+                document.getElementById('summaryDate').textContent = displayDate; 
+                document.getElementById('summaryTime').textContent = booking.time; 
+                document.getElementById('summaryRating').textContent = booking.rating;
+                document.title = `Book: ${booking.title} | Reelio`;
+                
+                const seatingChart = document.getElementById('seatingChart');
+                
+                // --- Seat Interaction & Database Loading Logic ---
+                async function loadOccupiedSeats() {
+                    seatingChart.innerHTML = '<p style="color:#bbb;">Loading seats...</p>';
+                    try {
+                        // Ask the server which seats are taken
+                        const url = `${SERVER_URL}/api/seats/occupied?movieTitle=${encodeURIComponent(booking.title)}&date=${encodeURIComponent(booking.date)}&time=${encodeURIComponent(booking.time)}&location=${encodeURIComponent(booking.location)}`;
+                        
+                        const response = await fetch(url);
+                        const data = await response.json();
+                        
+                        let occupiedSeats = [];
+                        if (response.ok && data.occupiedSeats) {
+                            occupiedSeats = data.occupiedSeats; // If DB is empty, this is correctly []
                         } else {
-                            seat.classList.add('selected');
-                            selectedSeats.push(seatId);
-                            totalPrice += seatPrice;
+                            console.warn("Could not retrieve occupied seats. Fallback used.");
+                            // If the server actually crashed, put in fake seats so you can still test the UI
+                            if (!response.ok) {
+                                occupiedSeats = ['A3','A4','B5','C1','C2','D8','D9','G10']; 
+                            }
                         }
-                        updateBookingSummary();
+
+                        // --- Build the Seating Chart Grid ---
+                        seatingChart.innerHTML = ''; 
+                        rows.forEach(row => {
+                            for(let i=1; i<=seatsPerRow; i++){
+                                const seatId = `${row}${i}`;
+                                const seat = document.createElement('div');
+                                seat.classList.add('seat');
+                                seat.textContent = i;
+                                seat.dataset.seatId = seatId;
+
+                                if(occupiedSeats.includes(seatId)){
+                                    seat.classList.add('occupied');
+                                } else {
+                                    seat.addEventListener('click', ()=>{
+                                        if(seat.classList.contains('selected')){
+                                            seat.classList.remove('selected');
+                                            selectedSeats = selectedSeats.filter(s=>s!==seatId); 
+                                        } else {
+                                            if (selectedSeats.length >= 8) {
+                                                alert("You can only select a maximum of 8 seats at a time.");
+                                                return;
+                                            }
+                                            seat.classList.add('selected');
+                                            selectedSeats.push(seatId);
+                                        }
+                                        updateBookingSummary(); // Updates the price instantly
+                                    });
+                                }
+                                seatingChart.appendChild(seat);
+                            }
+                        });
+
+                    } catch (error) {
+                        console.error("Error fetching occupied seats:", error);
+                        seatingChart.innerHTML = '<p style="color:red;">Error loading seats. Please try again.</p>';
+                    }
+                    updateBookingSummary(); // Set initial state (0.00)
+                }
+
+                // Call the function to build the seats!
+                loadOccupiedSeats(); 
+
+                // --- Proceed to Payment Logic ---
+                const btnProceedToPayment = document.getElementById('btnProceedToPayment');
+                if (btnProceedToPayment) {
+                    btnProceedToPayment.addEventListener('click', ()=>{
+                        if (selectedSeats.length > 0) {
+                            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+                            if (!currentUser) {
+                                alert('Please sign in to proceed with payment.');
+                                openLoginModal();
+                                return;
+                            }
+
+                            const finalBooking = {
+                                ...booking, 
+                                selectedSeats: selectedSeats,
+                                totalPrice: totalPrice.toFixed(2), 
+                                userId: currentUser.email
+                            };
+                            localStorage.setItem('finalBooking', JSON.stringify(finalBooking));
+                            window.location.href = 'payment.html';
+                        } else {
+                            alert('Please select at least one seat.');
+                        }
                     });
                 }
-                seatingChart.appendChild(seat);
             }
-        });
 
-        updateBookingSummary(); // Initial update when page loads
-
-        btnProceedToPayment.addEventListener('click', ()=>{
-            if(selectedSeats.length > 0){
-                // Combine existing booking details with selected seats and total price
-                const finalBooking = {
-                    ...booking, // Spreads all properties from the 'booking' object
-                    selectedSeats: selectedSeats,
-                    totalPrice: totalPrice.toFixed(2) // Ensure total price is formatted as a string
-                };
-                localStorage.setItem('finalBooking', JSON.stringify(finalBooking)); // Store this for the payment page
-                // alert(`Proceeding to payment for: ${finalBooking.title}\nSeats: ${finalBooking.selectedSeats.join(', ')}\nTotal: ₱${finalBooking.totalPrice}`); // For debugging
-                window.location.href = 'payment.html'; // THIS LINE IS NOW UNCOMMENTED
-            } else {
-                alert('Please select at least one seat.');
-            }
+            // Start the page!
+            initializeBuyTicketsPage(); 
         });
     </script>
 </body>
