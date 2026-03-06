@@ -6,6 +6,7 @@
     <title id="movieDetailPageTitle">Now Showing Movie</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="shortcut icon" href="logo.png" type="image/png">
 </head>
 <body>
     <header class="sub-header">
@@ -29,23 +30,8 @@
                 <h3>Overview</h3>
                 <p class="overview-text" id="movieDetailOverview"></p>
 
-                <!-- Ticket selection: Time, Date, Location -->
+                <!-- Ticket selection: Location -> Date -> Time (LAYOUT FIXED) -->
                 <div class="showtime-selection">
-                    <div class="dropdown">
-                        <label for="time-select">Time</label>
-                        <select id="time-select">
-                            <option value="11:00 AM">11:00 AM</option>
-                            <option value="3:30 PM">3:30 PM</option>
-                            <option value="6:00 PM">6:00 PM</option>
-                        </select>
-                    </div>
-                    <div class="dropdown">
-                        <label for="date-select">Date</label>
-                        <select id="date-select">
-                            <option value="Jan 14, 2026">Jan 14, 2026</option>
-                            <option value="Jan 15, 2026">Jan 15, 2026</option>
-                        </select>
-                    </div>
                     <div class="dropdown">
                         <label for="location-select">Location</label>
                         <select id="location-select">
@@ -54,10 +40,22 @@
                             <option value="Ayala Malls Feliz">Ayala Malls Feliz</option>
                         </select>
                     </div>
+                    <div class="dropdown">
+                        <label for="date-select">Date</label>
+                        <select id="date-select">
+                            <option value="">Select Date</option>
+                        </select>
+                    </div>
+                    <div class="dropdown">
+                        <label for="time-select">Time</label>
+                        <select id="time-select" disabled>
+                            <option value="">Select Time</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- BUY NOW button at the bottom -->
-                <button class="btn-buy-now" id="buyNowButton" style="margin-top: 30px;">BUY NOW</button>
+                <button class="btn-buy-now" id="buyNowButton" style="margin-top: 30px;" disabled>BUY NOW</button>
             </div>
         </section>
     </main>
@@ -76,41 +74,192 @@
 
     <script src="script.js"></script>
     <script>
-        // Populate movie details from localStorage
-        const movie = JSON.parse(localStorage.getItem('nowShowingMovie'));
-        if (movie) {
-            document.getElementById('detailsPageMovieTitle').textContent = movie.title;
-            document.getElementById('movieDetailPoster').src = movie.poster;
-            document.getElementById('movieDetailPoster').alt = movie.title + " Poster";
-            document.getElementById('movieDetailTitle').textContent = movie.title;
-            document.getElementById('movieDetailRatingDuration').textContent = movie.rating;
-            document.getElementById('movieDetailOverview').textContent = movie.overview;
-            document.title = movie.title + " | Reelio";
-        }
+        // We need the server URL here to fetch showtimes
+        const SERVER_URL = 'http://localhost:3000';
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get movie data from localStorage
+            const movie = JSON.parse(localStorage.getItem('nowShowingMovie'));
 
-        // Handle BUY NOW click: save selected time, date, location and redirect
-        const buyButton = document.getElementById('buyNowButton');
-        if (buyButton && movie) {
-            buyButton.addEventListener('click', () => {
-                const selectedTime = document.getElementById('time-select').value;
-                const selectedDate = document.getElementById('date-select').value;
-                const selectedLocation = document.getElementById('location-select').value;
+            // Function to handle initialization (now running AFTER DOM is loaded)
+            function initializeDetailsPage() {
+                if (!movie) {
+                    document.querySelector('.movie-details-page').innerHTML = `<div style="text-align:center; padding:50px; margin-top: 100px;"><h2>No Movie Selected</h2><p>Please go back to the <a href="index.html">Now Showing</a> page to select a movie.</p></div>`;
+                    return;
+                }
+                
+                // --- 1. Populate static details ---
+                const posterEl = document.getElementById('movieDetailPoster');
+                if (posterEl) {
+                    posterEl.src = movie.poster;
+                    posterEl.alt = movie.title + " Movie Poster";
+                } else {
+                    console.error("Error: Element with ID 'movieDetailPoster' not found in HTML.");
+                }
 
-                // Save booking details to localStorage
-                const bookingDetails = {
-                    title: movie.title,
-                    poster: movie.poster,
-                    rating: movie.rating,
-                    location: selectedLocation,
-                    date: selectedDate,
-                    time: selectedTime
-                };
-                localStorage.setItem('selectedBooking', JSON.stringify(bookingDetails));
+                document.getElementById('detailsPageMovieTitle').textContent = movie.title;
+                document.getElementById('movieDetailTitle').textContent = movie.title;
+                document.getElementById('movieDetailRatingDuration').textContent = movie.rating;
+                document.getElementById('movieDetailOverview').textContent = movie.overview;
+                document.title = movie.title + " | Reelio";
+                
+                // --- Select Elements ---
+                const timeSelect = document.getElementById('time-select');
+                const dateSelect = document.getElementById('date-select');
+                const locationSelect = document.getElementById('location-select');
+                const buyButton = document.getElementById('buyNowButton');
 
-                // Redirect to Buy Tickets page
-                window.location.href = "buy-tickets.html";
-            });
-        }
+                function setButtonState() {
+                    // Button is enabled only when all three (Location, Date, Time) have a value
+                    const isReady = timeSelect.value && dateSelect.value && locationSelect.value;
+                    buyButton.disabled = !isReady;
+                    buyButton.style.opacity = isReady ? '1' : '0.6';
+                    buyButton.style.cursor = isReady ? 'pointer' : 'not-allowed';
+                }
+                
+                // --- 2. Set Initial States for NEW ORDER (Location -> Date -> Time) ---
+                dateSelect.innerHTML = '<option value="" disabled selected>Select Date</option>';
+                timeSelect.innerHTML = '<option value="" disabled selected>Select Time</option>';
+                timeSelect.disabled = true; // Time must be disabled until Location/Date are selected
+
+                // Ensure location has a default based on your HTML structure
+                if (!locationSelect.value) {
+                    locationSelect.value = "SM San Mateo"; 
+                }
+
+                setButtonState();
+
+                async function loadShowtimes() {
+                    timeSelect.innerHTML = '<option value="" disabled selected>Select Time</option>';
+                    timeSelect.disabled = true; // Disable time select until we find valid showtimes
+                    setButtonState(); 
+
+                    const selectedLocation = locationSelect.value; // Location is now checked first
+                    const selectedDate = dateSelect.value;       // Date is checked second
+                    
+                    if (!selectedLocation || !selectedDate) { // Check both before loading times
+                        return;
+                    }
+                    // Time select can be enabled now that Location and Date are set
+                    timeSelect.disabled = false; 
+
+                    const movieId = movie.movieId; 
+
+                    try {
+                        const response = await fetch(`${SERVER_URL}/api/admin/showtimes/${movieId}`);
+                        const showtimes = await response.json();
+                        
+                        if (showtimes.length === 0 || showtimes.message) {
+                            timeSelect.innerHTML = '<option value="" disabled>No Showtimes Available</option>';
+                            timeSelect.disabled = true;
+                            return; 
+                        }
+
+                        const availableTimes = showtimes
+                            .filter(st => st.show_date === selectedDate && st.location === selectedLocation)
+                            .map(st => st.show_time) // Use the RAW store time (24hr format) for filtering/value
+                            .sort();
+
+                        const uniqueTimes = [...new Set(availableTimes)];
+                        
+                        if (uniqueTimes.length === 0) {
+                            timeSelect.innerHTML = '<option value="" disabled>No Showtimes for this Slot</option>';
+                            timeSelect.disabled = true;
+                        } else {
+                            uniqueTimes.forEach(time24hr => {
+                                // Find the display time (AM/PM) corresponding to the 24hr time for the user-facing text
+                                const matchingShowtime = showtimes.find(st => 
+                                    st.show_date === selectedDate && 
+                                    st.location === selectedLocation && 
+                                    st.show_time === time24hr
+                                );
+                                const timeText = matchingShowtime ? (matchingShowtime.display_time || time24hr) : time24hr;
+                                
+                                // Set the VALUE to the 24hr format (time24hr) for server consistency
+                                timeSelect.innerHTML += `<option value="${time24hr}">${timeText}</option>`; 
+                            });
+                            timeSelect.disabled = false;
+                        }
+
+                    } catch (error) {
+                        console.error("Error loading showtimes:", error);
+                        timeSelect.innerHTML = '<option value="" disabled>Error Loading Times</option>';
+                        timeSelect.disabled = true;
+                    }
+                    setButtonState();
+                }
+
+                // --- FIXED EVENT LISTENERS for Location -> Date -> Time ---
+                // Location change triggers showtime loading (which populates time)
+                locationSelect.addEventListener('change', loadShowtimes); 
+                // Date change triggers showtime loading (which populates time)
+                dateSelect.addEventListener('change', loadShowtimes); 
+                // Time change just updates the final button state
+                timeSelect.addEventListener('change', setButtonState); 
+
+                // --- Date Population Logic (still needs to run first) ---
+                async function initializeDateDropdown() {
+                    const movieId = movie.movieId; 
+                    try {
+                        const response = await fetch(`${SERVER_URL}/api/admin/showtimes/${movieId}`); 
+                        const showtimes = await response.json();
+                        
+                        // Get unique dates in YYYY-MM-DD format
+                        const uniqueDates = [...new Set(showtimes.map(st => st.show_date))].sort(); 
+
+                        dateSelect.innerHTML = '<option value="" disabled selected>Select Date</option>';
+                        
+                        uniqueDates.forEach(dateString => {
+                            let readableDate = dateString;
+                            try {
+                                // Convert YYYY-MM-DD string to local date object for nice display
+                                const dateObj = new Date(dateString + 'T00:00:00');
+                                if (!isNaN(dateObj)) {
+                                    readableDate = dateObj.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'});
+                                }
+                            } catch (e) {
+                                console.error("Error parsing date:", dateString, e);
+                            }
+                            // IMPORTANT: The value should be the raw dateString (YYYY-MM-DD) for server comparison
+                            dateSelect.innerHTML += `<option value="${dateString}">${readableDate}</option>`;
+                        });
+
+                    } catch (error) {
+                        console.error("Error fetching unique dates:", error);
+                        dateSelect.innerHTML = '<option value="" disabled>Error Loading Dates</option>';
+                    }
+                }
+                
+                // Initial load
+                initializeDateDropdown();
+
+                // Handle BUY NOW click
+                buyButton.addEventListener('click', () => {
+                    const selectedTime = timeSelect.value; // This is the 24hr format value
+                    const selectedDate = dateSelect.value;
+                    const selectedLocation = locationSelect.value;
+                    
+                    if (!selectedTime || !selectedDate || !selectedLocation) {
+                        alert('Please select a Location, Date, and Time before proceeding.');
+                        return;
+                    }
+
+                    const bookingDetails = {
+                        title: movie.title,
+                        poster: movie.poster,
+                        rating: movie.rating,
+                        location: selectedLocation,
+                        date: selectedDate, // Sends the YYYY-MM-DD format to the backend
+                        time: selectedTime  // Sends the 24hr format value (e.g., "15:30:00") to the backend
+                    };
+                    localStorage.setItem('selectedBooking', JSON.stringify(bookingDetails)); 
+                    window.location.href = "buy-tickets.html";
+                });
+            }
+            
+            // KICK OFF THE INITIALIZATION
+            initializeDetailsPage(); 
+        });
     </script>
 </body>
-</html>
+</html>```
