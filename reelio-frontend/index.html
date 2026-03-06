@@ -6,6 +6,7 @@
     <title>Reelio</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="shortcut icon" href="logo.png" type="image/png">
 </head>
 <body>
     <header class="main-header">
@@ -40,16 +41,58 @@
        
     <main>
         <section class="hero-section">
-            <div class="hero-slide active">
-                <img src="avatar-fire-and-ash-hero.webp" alt="Avatar: Fire and Ash">
+            <!-- SLIDE 1: AVATAR: FIRE AND ASH -->
+            <div class="hero-slide active" data-trailer-url="https://www.youtube.com/embed/nb_fFj_0rq8?si=NnSImRHKU8-5aXkJ?autoplay=1">
+                <img src="avatarrr.webp" alt="Avatar: Fire and Ash">
                 <div class="hero-content">
                     <h1>AVATAR: FIRE AND ASH</h1>
                     <div class="hero-buttons">
-                        <button class="btn-trailer">TRAILER</button>
-                        <button class="btn-get-tickets">GET TICKETS</button>
+                        <!-- FIXED: Added onclick="playTrailer(this)" -->
+                        <button class="btn-trailer" onclick="playTrailer(this)">TRAILER</button>
+                        <button class="btn-get-tickets" onclick="document.getElementById('now-showing-section').scrollIntoView({behavior: 'smooth'});">GET TICKETS</button>
                     </div>
                 </div>
             </div>
+            
+            <!-- SLIDE 2: GREENLAND 2: MIGRATION (NEW) -->
+            <div class="hero-slide" data-trailer-url="https://www.youtube.com/embed/H8ieN10lX40?si=_YXOqfedIj-JTMk1?autoplay=1">
+                <img src="greenland slide.webp" alt="Greenland 2: Migration">
+                <div class="hero-content">
+                    <h1>GREENLAND 2: MIGRATION</h1>
+                    <div class="hero-buttons">
+                        <!-- FIXED: Added onclick="playTrailer(this)" -->
+                        <button class="btn-trailer" onclick="playTrailer(this)">TRAILER</button>
+                        <button class="btn-get-tickets" onclick="document.getElementById('now-showing-section').scrollIntoView({behavior: 'smooth'});">GET TICKETS</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SLIDE 3: 28 YEARS LATER (NEW) -->
+            <div class="hero-slide" data-trailer-url="https://www.youtube.com/embed/EOwTdTZA8D8?si=537YrExpsyT2dLnl?autoplay=1">
+                <img src="28 years later slide.webp" alt="28 Years Later">
+                <div class="hero-content">
+                    <h1>28 YEARS LATER: THE BONE SCRAPS</h1>
+                    <div class="hero-buttons">
+                        <!-- FIXED: Added onclick="playTrailer(this)" -->
+                        <button class="btn-trailer" onclick="playTrailer(this)">TRAILER</button>
+                        <button class="btn-get-tickets" onclick="document.getElementById('now-showing-section').scrollIntoView({behavior: 'smooth'});">GET TICKETS</button>
+                    </div>
+                </div>
+            </div>
+            
+             <!-- SLIDE 4: ANACONDA (NEW) -->
+             <div class="hero-slide" data-trailer-url="https://www.youtube.com/embed/az8M5Mai0X4?si=gy5taz8qh9tg6qnN?autoplay=1">
+                <img src="anaconda slide.webp" alt="Anaconda">
+                <div class="hero-content">
+                    <h1>ANACONDA</h1>
+                    <div class="hero-buttons">
+                        <!-- FIXED: Added onclick="playTrailer(this)" -->
+                        <button class="btn-trailer" onclick="playTrailer(this)">TRAILER</button>
+                        <button class="btn-get-tickets" onclick="document.getElementById('now-showing-section').scrollIntoView({behavior: 'smooth'});">GET TICKETS</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Add more slides here for slideshow functionality -->
         </section>
 
@@ -172,28 +215,34 @@
 
 
         <!-- Added id="contact-us-section" -->
-        <section class="contact-us" id="contact-us-section">
-            <div class="contact-text">
-                <h2>CONTACT US</h2>
-                <p>Stay in the loop. Get the latest events and exclusive offers.</p>
+       <section class="contact-us" id="contact-us-section">
+    <div class="contact-text">
+        <h2>CONTACT US</h2>
+        <p>Stay in the loop. Get the latest events and exclusive offers.</p>
+    </div>
+    <div class="contact-form-container">
+        <!-- *** FORM MUST HAVE THIS ID *** -->
+        <form id="contactForm" class="contact-form"> 
+            <label for="emailAddress">Email Address</label>
+            <!-- *** INPUT MUST HAVE THIS ID *** -->
+            <input type="email" id="emailAddress" placeholder="Email Address" required> 
+            
+            <!-- Checkboxes for reCAPTCHA and Terms (Keep or adjust as needed) -->
+            <div class="captcha">
+                <input type="checkbox" id="captcha" required>
+                <label for="captcha">I am not a robot</label>
+                <span><img src="captcha-icon.png" alt="Captcha icon"></span>
             </div>
-            <div class="contact-form-container">
-                <form class="contact-form">
-                    <label for="email-address">Email Address</label>
-                    <input type="email" id="email-address" placeholder="Email Address">
-                    <div class="captcha">
-                        <input type="checkbox" id="captcha">
-                        <label for="captcha">I am not a robot</label>
-                        <span><img src="captcha-icon.png" alt="Captcha icon"></span>
-                    </div>
-                    <div class="terms">
-                        <input type="checkbox" id="terms">
-                        <label for="terms">By checking this box you agree to the Terms of Use and Privacy Policy.</label>
-                    </div>
-                    <button type="submit" class="btn-signup-newsletter">SIGN UP</button>
-                </form>
+            <div class="terms">
+                <input type="checkbox" id="terms" required>
+                <label for="terms">By checking this box you agree to the Terms of Use and Privacy Policy.</label>
             </div>
-        </section>
+            
+            <!-- *** BUTTON TYPE IS SUBMIT AND NO ONCLICK HANDLER *** -->
+            <button type="submit" class="btn-signup-newsletter">SIGN UP</button>
+        </form>
+    </div>
+</section>
     </main>
 
 <footer>
