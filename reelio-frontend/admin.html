@@ -27,7 +27,6 @@
             <h2>MANAGE SYSTEM</h2>
             <div class="admin-tabs">
                 <button class="admin-tab-btn active" data-tab="movieManagement">Movie & Showtime Management</button>
-                <!-- Removed showtimeManagementTab -->
                 <button class="admin-tab-btn" data-tab="bookingManagement">Booking Management</button>
                 <button class="admin-tab-btn" data-tab="analytics">Analytics Dashboard</button>
             </div>
@@ -74,8 +73,8 @@
             <!-- LOCATION MANAGEMENT TAB CONTENT (Kept for now) -->
             <div id="locationManagementTab" class="tab-content">
                 <!-- Content will be dynamically loaded by admin.js -->
-                <h3>Location Management (Placeholder)</h3>
-                <p>This section manages cinema locations, theaters, and seating capacities.</p>
+                <h3>Cinema Management (Placeholder)</h3>
+                <p>This section manages cinemas, theaters, and seating capacities.</p>
             </div>
 
             <!-- BOOKING MANAGEMENT TAB CONTENT (UPDATED) -->
@@ -83,9 +82,9 @@
                 <h3>Booking Management</h3>
                 <div class="admin-tabs-sub">
                     <button class="admin-tab-btn active" data-location="all">All Ticket Transactions</button>
-                    <button class="admin-tab-btn" data-location="SM San Mateo">SM San Mateo Bookings</button>
-                    <button class="admin-tab-btn" data-location="SM Megamall">SM Megamall Bookings</button>
-                    <button class="admin-tab-btn" data-location="Ayala Malls Feliz">Ayala Malls Feliz Bookings</button>
+                    <button class="admin-tab-btn" data-location="Cinema 1">Cinema 1 Bookings</button>
+                    <button class="admin-tab-btn" data-location="Cinema 2">Cinema 2 Bookings</button>
+                    <button class="admin-tab-btn" data-location="Cinema 3">Cinema 3 Bookings</button>
                 </div>
                 <div id="bookingsListContainer">
                     <p>Loading bookings...</p>
@@ -124,7 +123,9 @@
                     <div class="form-group" id="editTrailerUrlGroup" style="display:none;"><label for="editMovieTrailerUrl">Trailer URL</label><input type="text" id="editMovieTrailerUrl"></div>
 
                     <!-- INTEGRATED SHOWTIME MANAGEMENT -->
-                    <h3>Showtimes Management (For Movie ID: <span id="showtimeMovieIdDisplay"></span>)</h3>
+                    <!-- *** FIX: Added missing element ID 'showtimeMovieIdDisplay' here *** -->
+                    <p style="font-size: 0.9em; color: #bbb;">Editing Movie ID: <span id="showtimeMovieIdDisplay"></span></p> 
+                    <h3>Showtimes Management (Cinema/Date/Time)</h3>
                     <div id="editShowtimesContainer" class="showtimes-container">
                         <p>Loading showtimes...</p> 
                     </div>
@@ -132,7 +133,7 @@
 
                     <div class="form-actions">
                         <button type="submit" class="btn-primary">Save Changes</button>
-                        <button type="button" class="btn-delete" onclick="deleteMovie()">Delete Movie</button>
+                        <button type="button" class="btn-delete" onclick="deleteMovie()">Remove Movie</button>
                     </div>
                 </form>
             </div>
