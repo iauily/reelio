@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Successful - Reelio</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Optional: Add an icon for success (Font Awesome) -->
+     <link rel="shortcut icon" href="logo.png" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <header class="sub-header">
+        <div class="logo">
+            <a href="index.html" class="logo-link">
+                <img src="logo.png" alt="Reelio Logo">
+            </a>
+        </div>
+        <span class="page-title">Booking Confirmation</span>
+    </header>
+
+    <main class="payment-success-page">
+        <div class="success-card">
+            <i class="fas fa-check-circle success-icon"></i>
+            <h2>Booking Successful!</h2>
+            <p>Your reservation is complete. Please pay at the cinema counter.</p>
+            <p>A confirmation email with your e-tickets has been sent to your registered email address.</p>
+
+            <div class="booked-details">
+                <h3>Booking Summary</h3>
+                <div class="summary-item"><strong>Movie:</strong> <span id="successMovieTitle"></span></div>
+                <div class="summary-item"><strong>Cinema:</strong> <span id="successLocation"></span></div>
+                <div class="summary-item"><strong>Date & Time:</strong> <span id="successDateTime"></span></div>
+                <div class="summary-item"><strong>Seats:</strong> <span id="successSelectedSeats"></span></div>
+                <!-- NEW: Booking ID -->
+                <div class="summary-item"><strong>Booking ID:</strong> <span id="successBookingId"></span></div>
+                <!-- NEW: Payment Method -->
+                <div class="summary-item"><strong>Payment Method:</strong> <span id="successPaymentMethod"></span></div>
+                <div class="summary-item total-amount"><strong>Total Paid:</strong> <span id="successTotalAmount">₱0.00</span></div>
+            </div>
+    </main>
+
+    <footer>
+        <nav class="footer-nav">
+            <ul>
+                <li><a href="#">Terms of Use</a></li>
+                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="#">Accessibility</a></li>
+                <li><a href="#">Cookies Settings</a></li>
+            </ul>
+        </nav>
+        <p>© 2026 Reelio, All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Retrieve the data from local storage
+        const booking = JSON.parse(localStorage.getItem('lastSuccessfulBooking'));
+
+        if (booking) {
+            // Fill in the summary elements
+            document.getElementById('successMovieTitle').textContent = booking.title;
+            document.getElementById('successLocation').textContent = booking.location;
+            document.getElementById('successDateTime').textContent = `${booking.date} - ${booking.time}`;
+            document.getElementById('successSelectedSeats').textContent = booking.selectedSeats.join(', ');
+            document.getElementById('successBookingId').textContent = booking.bookingId;
+            document.getElementById('successPaymentMethod').textContent = booking.paymentMethod;
+            document.getElementById('successTotalAmount').textContent = `₱${parseFloat(booking.totalPrice).toFixed(2)}`;
+        } else {
+            document.querySelector('.booked-details').innerHTML = "<p>No booking information found.</p>";
+        }
+    });
+</script>
+</body>
+</html>
