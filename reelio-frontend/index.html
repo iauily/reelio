@@ -223,23 +223,33 @@
     <div class="contact-form-container">
         <!-- *** FORM MUST HAVE THIS ID *** -->
         <form id="contactForm" class="contact-form"> 
-            <label for="emailAddress">Email Address</label>
-            <!-- *** INPUT MUST HAVE THIS ID *** -->
-            <input type="email" id="emailAddress" placeholder="Email Address" required> 
-            
-            <!-- Checkboxes for reCAPTCHA and Terms (Keep or adjust as needed) -->
-            <div class="captcha">
-                <input type="checkbox" id="captcha" required>
-                <label for="captcha">I am not a robot</label>
-                <span><img src="captcha-icon.png" alt="Captcha icon"></span>
-            </div>
-            <div class="terms">
-                <input type="checkbox" id="terms" required>
-                <label for="terms">By checking this box you agree to the Terms of Use and Privacy Policy.</label>
+            <div class="form-row-split">
+                <div class="form-group">
+                    <label for="firstName">First Name</label>
+                    <input type="text" id="firstName" name="firstName" placeholder="First Name" required>
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Last Name</label>
+                    <input type="text" id="lastName" name="lastName" placeholder="Last Name" required>
+                </div>
             </div>
             
-            <!-- *** BUTTON TYPE IS SUBMIT AND NO ONCLICK HANDLER *** -->
-            <button type="submit" class="btn-signup-newsletter">SIGN UP</button>
+            <div class="form-group">
+                <label for="emailAddress">Email Address</label>
+                <input type="email" id="emailAddress" name="emailAddress" placeholder="Email Address" required> 
+            </div>
+            
+            <div class="form-group">
+                <label for="messageContent">Ask us anything or share your thoughts:</label>
+                <textarea id="messageContent" name="messageContent" rows="5" placeholder="Your message here..." required></textarea>
+            </div>
+            
+            <div class="form-group newsletter-group">
+                <input type="checkbox" id="newsletter" name="newsletter">
+                <label for="newsletter">Yes, subscribe me to your newsletter.</label>
+            </div>
+            
+            <button type="submit" class="btn-signup-newsletter">SUBMIT</button>
         </form>
     </div>
 </section>
