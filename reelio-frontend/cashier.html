@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cashier Terminal - Reelio</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="shortcut icon" href="logo.png" type="image/png">
+</head>
+<body>
+    <header class="sub-header" style="background-color: #333; border-bottom: 2px solid #ffcc00;">
+        <div class="logo">
+            <a href="#" class="logo-link">
+                <img src="logo.png" alt="Reelio Logo">
+            </a>
+        </div>
+        <span class="page-title" style="color: #ffcc00;">CASHIER TERMINAL</span>
+        <div class="header-actions">
+            <button class="btn-logout" onclick="handleLogoutCashier()">LOG OUT</button>
+        </div>
+    </header>
+
+    <main class="cashier-page">
+        <h2>MANUAL TICKET RESERVATION</h2>
+        
+        <!-- 1. Show Selection -->
+        <section class="cashier-controls">
+            <h3>1. Select Show</h3>
+            
+            <div class="cashier-show-selector">
+                <!-- MOVIE: Given more space (flex-grow: 2) -->
+                <div class="form-group full-width-group">
+                    <label for="cashierMovieSelect">Movie</label>
+                    <select id="cashierMovieSelect"><option value="">-- Select Movie --</option></select>
+                </div>
+                
+                <!-- CINEMA -->
+                <div class="form-group">
+                    <label for="cashierCinemaSelect">Cinema</label>
+                    <select id="cashierCinemaSelect"><option value="">-- Select Cinema --</option></select>
+                </div>
+                
+                <!-- DATE -->
+                <div class="form-group">
+                    <label for="cashierDateSelect">Date</label>
+                    <input type="date" id="cashierDateSelect">
+                </div>
+                
+                <!-- TIME -->
+                <div class="form-group">
+                    <label for="cashierTimeSelect">Time</label>
+                    <select id="cashierTimeSelect" disabled><option value="">-- Select Time --</option></select>
+                </div>
+                
+                <!-- LOAD SEATS BUTTON: Grouped separately to align height -->
+                <div class="form-group load-button-group">
+                    <button type="button" class="btn-load-seats" id="loadShowtimeBtn" disabled onclick="loadSeatingChart()">Load Seats</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Seat Selection -->
+        <section id="seatSelectionSection" class="seat-selection-section" style="display:none;">
+            <h3>2. Select Seats for Customer</h3>
+            <div class="screen-indicator">Screen</div>
+            <div class="seating-chart" id="cashierSeatingChart">
+                <!-- Seats loaded here -->
+            </div>
+
+            <div class="seat-legend">
+                <div class="legend-item"><span class="seat available"></span> Available (Click to Select)</div>
+                <div class="legend-item"><span class="seat selected"></span> Selected (Cashier)</div>
+                <div class="legend-item"><span class="seat occupied"></span> Occupied (Online/Booked)</div>
+            </div>
+
+            <div class="booking-actions">
+                <p>Selected Seats: <span id="cashierSelectedSeatsDisplay">None</span></p>
+                <p>Total Price: ₱<span id="cashierTotalPriceDisplay">0.00</span></p>
+                <button class="btn-proceed-payment" id="btnFinalizeCashBooking" disabled>Complete Cash Sale</button>
+            </div>
+        </section>
+
+        <!-- 3. Final Details Form (For Cash/Walk-in Customer) -->
+        <section id="finalDetailsSection" style="display:none;">
+            <h3>3. Customer Details & Payment</h3>
+            <form id="cashBookingForm" class="admin-form">
+                <input type="hidden" id="cashBookingMovieId">
+                <div class="form-group">
+                    <label for="cashCustomerEmail">Customer Email (for ticket receipt)</label>
+                    <input type="email" id="cashCustomerEmail" required placeholder="e.g., walk-in@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="cashPaymentMethod">Payment Method</label>
+                    <select id="cashPaymentMethod" required>
+                        <option value="Cash (Counter)">Cash at Counter</option>
+                        <option value="GCash (Manual)">GCash (Manual Scan)</option>
+                        <option value="Card (Manual)">Card (Manual Entry)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="cashierNotes">Cashier Notes (Optional)</label>
+                    <input type="text" id="cashierNotes" placeholder="e.g., VIP, Loyalty Member">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Confirm Cash Booking</button>
+                    <button type="button" class="btn-secondary" onclick="resetCashier()">RESET</button>
+                </div>
+            </form>
+        </section>
+        
+        <div id="cashierStatusMessage" style="margin-top: 20px; padding: 15px; border-radius: 5px; display: none;"></div>
+
+    </main>
+
+    <footer>
+        <p>© 2026 Reelio Cashier Terminal</p>
+    </footer>
+
+    <script src="cashier.js"></script>
+    <!-- Re-include script.js to get auth functions -->
+    <script src="script.js"></script> 
+</body>
+</html>
