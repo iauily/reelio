@@ -1,116 +1,63 @@
-// server.js (COMPLETE VERSION WITH STATIC EMAIL QR PLACEHOLDER AND STATIC FILE SERVING)
 require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
-const bcrypt = require('bcrypt'); 
-const nodemailer = require('nodemailer'); 
-const path = require('path'); 
+const bcrypt = require('bcrypt');
+const nodemailer = require('nodemailer');
+const path = require('path');
+const qrcode = require('qrcode');
+const Sentiment = require('sentiment'); // Ensure this is installed
 
 const app = express();
+const sentiment = new Sentiment();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(express.json());
-app.use(cors({
-    origin: 'http://127.0.0.1:5500' // *** CRITICAL: Must match your Live Server port ***
-}));
+app.use(cors({ origin: 'http://127.0.0.1:5500' }));
+app.use(express.static(path.join(__dirname)));
 
-// *** NEW: Static File Serving Middleware for Email QR ---
-app.use(express.static(path.join(__dirname))); 
-
-// Helper function to apply no-cache headers
 const applyNoCacheHeaders = (res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 };
 
-
-// Database Connection Pool
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_DATABASE,
     waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
+    connectionLimit: 10
 });
 
-// --- Configure Nodemailer Transporter ---
 const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST, 
-    port: parseInt(process.env.EMAIL_PORT || '587', 10), 
-    secure: process.env.EMAIL_PORT == 465, // true for 465, false for 587
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    },
+    host: process.env.EMAIL_HOST,
+    port: parseInt(process.env.EMAIL_PORT || '587'),
+    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
 });
 
-// --- Function to send the confirmation email (Uses STATIC Placeholder QR) ---
-async function sendConfirmationEmail(bookingDetails) {
-    const totalPaid = parseFloat(bookingDetails.totalPrice).toFixed(2);
-
-    // 1. DEFINE THE STATIC PLACEHOLDER IMAGE FOR THE EMAIL
-    const qrCodeImage = `
-        <div style="text-align: center; margin: 20px 0;">
-            <h4 style="color: #ffcc00;">Scan for Quick Entry:</h4>
-            <!-- IMPORTANT: Ensure 'email-ticket-qr.png' exists in the server root -->
-            <img src="http://localhost:3000/email-ticket-qr.png" alt="QR Code Ticket Placeholder" style="width: 150px; height: 150px; border: 4px solid #ffcc00; padding: 5px;">
-            <p style="font-size: 0.8em; color: #999;">Booking ID: ${bookingDetails.bookingId}</p>
-        </div>
-    `;
-
-    const mailOptions = {
-        from: `"Reelio Ticketing" <${process.env.EMAIL_USER}>`,
-        to: bookingDetails.userId, 
-        subject: `✅ Your Reelio Ticket Confirmation - ID: ${bookingDetails.bookingId}`,
-        html: `
-            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 8px;">
-                <h2 style="color: #ffcc00;">Booking Confirmed!</h2>
-                <p>Thank you for booking with Reelio. Your tickets are reserved.</p>
-                
-                ${qrCodeImage}  <!-- <-- STATIC QR CODE PLACEHOLDER IS INSERTED HERE -->
-
-                <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
-                    <h3 style="margin-top: 0; color: #333;">${bookingDetails.title}</h3>
-                    <p><strong>Location:</strong> ${bookingDetails.location}</p>
-                    <p><strong>Date & Time:</strong> ${bookingDetails.date} at ${bookingDetails.time}</p>
-                    <p><strong>Seats:</strong> ${bookingDetails.selectedSeats.join(', ')}</p>
-                </div>
-                
-                <table style="width:100%; border-collapse: collapse;">
-                    <tr>
-                        <td style="padding: 8px; border-top: 1px solid #ddd;">Booking ID:</td>
-                        <td style="padding: 8px; border-top: 1px solid #ddd; text-align: right; font-weight: bold;">${bookingDetails.bookingId}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px; border-top: 1px solid #ddd;">Payment Method:</td>
-                        <td style="padding: 8px; border-top: 1px solid #ddd; text-align: right; font-weight: bold;">${bookingDetails.paymentMethod}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 8px; border-top: 2px solid #ffcc00;"><strong>Total Paid:</strong></td>
-                        <td style="padding: 8px; border-top: 2px solid #ffcc00; text-align: right; font-size: 1.2em; color: #d9534f;"><strong>₱${totalPaid}</strong></td>
-                    </tr>
-                </table>
-
-                <p style="margin-top: 30px; font-size: 0.9em; text-align: center; color: #777;">
-                    Please present this QR code on your phone at the cinema counter for quick entry.
-                </p>
-            </div>
-        `
-    };
-
+// --- FIXED: Consolidated Contact Route ---
+app.post('/api/contact', async (req, res) => {
+    const { firstName, lastName, emailAddress, messageContent } = req.body;
+    
+    // We remove the user_id from the insert to let the database handle it automatically
     try {
-        let info = await transporter.sendMail(mailOptions);
-        console.log(`Email sent successfully to ${bookingDetails.userId}: ${info.messageId}`);
+        console.log("Saving feedback to database...");
+        
+        const sql = 'INSERT INTO feedback (email, message, sentiment, score) VALUES (?, ?, ?, ?)';
+        // We use dummy values for sentiment/score just to see if the DB insert works
+        await pool.query(sql, [emailAddress, messageContent, 'Neutral', 0]);
+        
+        console.log("Successfully saved to database!");
+        res.status(200).json({ message: "Success" });
+        
     } catch (error) {
-        console.error(`Failed to send email to ${bookingDetails.userId}:`, error);
+        // THIS IS THE MOST IMPORTANT PART:
+        console.error("THE SERVER CRASHED BECAUSE:", error);
+        res.status(500).json({ message: "Server Error" });
     }
-}
-
+});
 
 // ===============================================================
 // 1. TEST ENDPOINT 
@@ -122,9 +69,9 @@ app.get('/api/test', async (req, res) => {
         
         if (rows.length === 0) {
             await pool.query('INSERT INTO test_data (message) VALUES (?)', ['Database connection successful!']);
-            res.status(200).json({ message: 'Successfully connected and inserted initial test data.', data: [{ message: 'Database connection successful!', timestamp: new Date().toISOString() }] });
+            res.status(200).json({ message: "Successfully connected and inserted initial test data.", data: [{ message: 'Database connection successful!', timestamp: new Date().toISOString() }] });
         } else {
-            res.status(200).json({ message: 'Successfully retrieved test data.', data: rows });
+            res.status(200).json({ message: "Successfully retrieved test data.", data: rows });
         }
     } catch (error) {
         console.error("DATABASE CONNECTION FAILED:", error);
@@ -161,7 +108,6 @@ app.get('/api/movies', async (req, res) => {
 
 // POST an add movie (for Admin page)
 app.post('/api/admin/movie', async (req, res) => {
-    // This relies on express.json() middleware correctly parsing the body
     const { title, overview, rating_duration, poster_url, release_date, status, trailer_url } = req.body;
     
     if (!title || !status) {
@@ -177,6 +123,41 @@ app.post('/api/admin/movie', async (req, res) => {
     } catch (error) {
         console.error("Error adding movie:", error);
         res.status(500).json({ message: "Database error adding movie" });
+    }
+});
+
+app.put('/api/admin/movie/:id', async (req, res) => {
+    const movieId = req.params.id;
+    const { title, overview, rating_duration, poster_url, release_date, status, trailer_url } = req.body;
+    
+    try {
+        const [result] = await pool.query(
+            `UPDATE movies SET title=?, overview=?, rating_duration=?, poster_url=?, release_date=?, status=?, trailer_url=? WHERE movie_id=?`,
+            [title, overview, rating_duration, poster_url, release_date || null, status, trailer_url || null, movieId]
+        );
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Movie not found." });
+        }
+        res.status(200).json({ message: "Movie updated successfully." });
+    } catch (error) {
+        console.error("Error updating movie:", error);
+        res.status(500).json({ message: "Database error updating movie." });
+    }
+});
+
+app.delete('/api/admin/movie/:id', async (req, res) => {
+    const movieId = req.params.id;
+    try {
+        const [result] = await pool.query('DELETE FROM movies WHERE movie_id = ?', [movieId]);
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Movie not found." });
+        }
+        res.status(200).json({ message: "Movie deleted successfully." });
+    } catch (error) {
+        console.error("Error deleting movie:", error);
+        res.status(500).json({ message: "Database error deleting movie." });
     }
 });
 
@@ -254,7 +235,48 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// --- NEW THEME PREFERENCE ENDPOINTS in server.js ---
 
+// PUT /api/user/theme
+app.put('/api/user/theme', async (req, res) => {
+    const { email, theme } = req.body;
+    if (!email || !theme || (theme !== 'light' && theme !== 'dark')) {
+        return res.status(400).json({ message: "Missing required data (email or invalid theme)." });
+    }
+    try {
+        const [result] = await pool.query(
+            'UPDATE users SET theme_preference = ? WHERE email = ?',
+            [theme, email]
+        );
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "User not found." });
+        }
+        res.status(200).json({ message: "Theme preference updated successfully." });
+    } catch (error) {
+        console.error("Error updating theme preference:", error);
+        res.status(500).json({ message: "Database error updating theme." });
+    }
+});
+
+// GET /api/user/theme (Called after login)
+app.get('/api/user/theme/:email', async (req, res) => {
+    const email = req.params.email;
+    try {
+        const [rows] = await pool.query(
+            'SELECT theme_preference FROM users WHERE email = ?',
+            [email]
+        );
+        if (rows.length === 0) {
+            return res.status(404).json({ message: "User not found." });
+        }
+        res.status(200).json({ theme: rows[0].theme_preference });
+    } catch (error) {
+        console.error("Error retrieving theme preference:", error);
+        res.status(500).json({ message: "Database error retrieving theme." });
+    }
+});
+
+// --- END NEW THEME PREFERENCE ENDPOINTS ---
 // ===============================================================
 // 4. BOOKING ENDPOINTS 
 // ===============================================================
@@ -267,23 +289,33 @@ app.post('/api/booking', async (req, res) => {
         return res.status(400).json({ message: "Missing required booking data." });
     }
 
-     const dateTime = `${date} ${time}`;
+    const dateTime = `${date} ${time}`;
     
-    // *** NEW LOGIC TO DETERMINE PAYMENT STATUS ***
-    let finalPaymentStatus = 'PAID'; // Default to PAID for Card/GCash
-    if (paymentMethod === 'Cash (Reservation)' || paymentMethod === 'Cash (Counter)') {
-        finalPaymentStatus = 'PENDING'; // Set to PENDING for cash/reservation
-    }
-    // *** END NEW LOGIC ***
-
     try {
-        const [result] = await pool.query(
-            // *** NEW: Added payment_status to INSERT statement ***
-            'INSERT INTO bookings (user_email, movie_title, location, date_time, seats, total_price, payment_method, payment_status) VALUES (?, ?, ?, STR_TO_DATE(?, \'%Y-%m-%d %H:%i:%s\'), ?, ?, ?, ?)',
-            [userId, title, location, dateTime, selectedSeats.join(', '), totalPrice, paymentMethod, finalPaymentStatus] // *** NEW: Added finalPaymentStatus ***
-        );
+        // 1. Get the user_id from email
+        const [userRows] = await pool.query('SELECT user_id FROM users WHERE email = ?', [userId]);
+        const dbUserId = userRows.length > 0 ? userRows[0].user_id : null;
+
+        // 2. Get the movie_id from title
+        const [movieRows] = await pool.query('SELECT movie_id FROM movies WHERE title = ?', [title]);
+        const dbMovieId = movieRows.length > 0 ? movieRows[0].movie_id : null;
+
+        // 3. Generate QR code
+        const qrText = `Reelio-Booking:${userId}|${title}|${selectedSeats.join(',')}|${dateTime}`;
+        const qrDataUrl = await qrcode.toDataURL(qrText, { errorCorrectionLevel: 'H' });
         
-        // --- PREPARE AND SEND EMAIL ---
+        // 4. Save to DB
+        // Note: finalPaymentStatus is 'PENDING' for Cash, 'PAID' for others
+        const finalPaymentStatus = (paymentMethod === 'Cash on Counter') ? 'PENDING' : 'PAID';
+
+        const [insertResult] = await pool.query(
+            `INSERT INTO bookings 
+            (user_email, movie_title, location, date_time, seats, total_price, payment_method, payment_status, qr_code_data, user_id, movie_id) 
+            VALUES (?, ?, ?, STR_TO_DATE(?, '%Y-%m-%d %H:%i:%s'), ?, ?, ?, ?, ?, ?, ?)`,
+            [userId, title, location, dateTime, selectedSeats.join(','), totalPrice, paymentMethod, finalPaymentStatus, qrDataUrl, dbUserId, dbMovieId]
+        );
+
+        // 5. Send Email
         const bookingDetailsForEmail = {
             userId: userId,
             title: title,
@@ -293,28 +325,28 @@ app.post('/api/booking', async (req, res) => {
             selectedSeats: selectedSeats,
             totalPrice: totalPrice,
             paymentMethod: paymentMethod,
-            bookingId: result.insertId // Pass the new ID
+            bookingId: insertResult.insertId,
+            qrCodeData: qrDataUrl
         };
         
-        // Send email asynchronously without blocking the response
-        sendConfirmationEmail(bookingDetailsForEmail); 
-        // -----------------------------
+        await sendConfirmationEmail(bookingDetailsForEmail); 
         
-        res.status(201).json({ message: "Booking successful", bookingId: result.insertId });
+        res.status(201).json({ message: "Booking successful", bookingId: insertResult.insertId });
 
     } catch (error) {
-        console.error("Error creating booking:", error);
-        res.status(500).json({ message: "Database error saving booking" });
+        console.error("Booking Error:", error);
+        res.status(500).json({ message: "Database error or QR generation failed." });
     }
 });
-
 
 // GET user's bookings (for my-bookings.html)
 app.get('/api/bookings/:email', async (req, res) => {
     applyNoCacheHeaders(res); 
     const email = req.params.email;
     try {
-const [rows] = await pool.query('SELECT *, payment_status, DATE_FORMAT(date_time, \'%M %d, %Y - %h:%i %p\') as formatted_datetime FROM bookings ORDER BY booking_timestamp DESC',            [email]
+        const [rows] = await pool.query(
+            'SELECT *, payment_status, DATE_FORMAT(date_time, \'%M %d, %Y - %h:%i %p\') as formatted_datetime FROM bookings WHERE user_email = ? ORDER BY booking_timestamp DESC',
+            [email]
         );
         
         res.status(200).json(rows);
@@ -416,13 +448,47 @@ app.get('/api/admin/showtimes/:movieId', async (req, res) => {
 
 app.post('/api/admin/showtime', async (req, res) => {
     const { movieId, time, date, location } = req.body;
-    if (!movieId || !time || !date || !location) {
+    
+    // --- FIX FOR TIME FORMATTING (Converting AM/PM Text to 24hr Time) ---
+    let finalTime24hr;
+    
+    try {
+        // Simple parsing logic assuming time input is in "X:XX AM/PM" format from admin.js
+        const parts = time.toUpperCase().split(' ');
+        const [hStr, mStr] = parts[0].split(':');
+        let h = parseInt(hStr, 10);
+        const m = mStr || '00';
+        
+        if (parts.includes('PM') && h !== 12) {
+            finalTime24hr = `${h + 12}:${m}:00`;
+        } else if (parts.includes('AM') && h === 12) {
+            finalTime24hr = `00:${m}:00`; // Midnight case
+        } else {
+            finalTime24hr = `${String(h).padStart(2, '0')}:${m}:00`;
+        }
+    } catch (e) {
+        console.warn("Time parsing failed for admin input, using raw time:", time);
+        finalTime24hr = time; // Fallback
+    }
+    
+    if (!movieId || !finalTime24hr || !date || !location) {
         return res.status(400).json({ message: "Missing required showtime data." });
     }
+
     try {
+        // *** Check for duplicate showtime using the converted 24HR time ***
+        const [existingRows] = await pool.query(
+            'SELECT showtime_id FROM showtimes WHERE movie_id = ? AND show_date = ? AND location = ? AND show_time = ?',
+            [movieId, date, location, finalTime24hr] 
+        );
+
+        if (existingRows.length > 0) {
+            return res.status(409).json({ message: "Duplicate showtime! A showtime already exists for this movie, date, cinema, and time." });
+        }
+
         const [result] = await pool.query(
             'INSERT INTO showtimes (movie_id, show_time, show_date, location) VALUES (?, ?, ?, ?)',
-            [movieId, time, date, location]
+            [movieId, finalTime24hr, date, location] // INSERT THE CONVERTED 24HR TIME
         );
         res.status(201).json({ message: "Showtime added successfully", showtimeId: result.insertId });
     } catch (error) {
@@ -512,7 +578,7 @@ app.get('/api/bookings/:email', async (req, res) => {
     const email = req.params.email;
     try {
         const [rows] = await pool.query(
-            'SELECT *, DATE_FORMAT(date_time, \'%M %d, %Y - %h:%i %p\') as formatted_datetime FROM bookings WHERE user_email = ? ORDER BY booking_timestamp DESC',
+            'SELECT *, payment_status, DATE_FORMAT(date_time, \'%M %d, %Y - %h:%i %p\') as formatted_datetime FROM bookings WHERE user_email = ? ORDER BY booking_timestamp DESC',
             [email]
         );
         
@@ -524,7 +590,7 @@ app.get('/api/bookings/:email', async (req, res) => {
 });
 
 // ===============================================================
-// 6. ADMIN STATS (Analytics)
+// 6. *** ADMIN STATS (Analytics)
 // ===============================================================
 app.get('/api/admin/stats', async (req, res) => {
     applyNoCacheHeaders(res);
@@ -553,7 +619,7 @@ app.post('/api/admin/cancellation/:bookingId', async (req, res) => {
     }
     try {
         const [updateResult] = await pool.query(
-            'UPDATE bookings SET date_time = NULL WHERE booking_id = ?', 
+            'UPDATE bookings SET payment_status = "CANCELLED", date_time = NULL WHERE booking_id = ?', 
             [bookingId]
         );
         
@@ -585,6 +651,7 @@ app.get('/api/seats/occupied', async (req, res) => {
             AND location = ? 
             AND DATE(date_time) = ? 
             AND TIME_FORMAT(TIME(date_time), '%H:%i:%s') = ? 
+            AND payment_status != 'CANCELLED'
         `;
         
         const [rows] = await pool.query(sql, [movieTitle, location, date, time]);
@@ -609,41 +676,284 @@ app.get('/api/seats/occupied', async (req, res) => {
 });
 
 
-// --- NEW: CONTACT FORM API ROUTE ---
-app.post('/api/contact', async (req, res) => {
-    const { emailAddress } = req.body;
-    const ADMIN_EMAIL = "reeliocinema@gmail.com"; // <-- !!! CHANGE THIS TO YOUR REAL ADMIN EMAIL !!!
-    
-    if (!emailAddress) {
-        return res.status(400).json({ message: "Email address is required." });
+// ===============================================================
+// 7. CASHIER/MANUAL BOOKING ENDPOINTS (NEW)
+// ===============================================================
+
+// GET: Get all available seats for a specific showtime
+app.get('/api/cashier/seats/available', async (req, res) => {
+    applyNoCacheHeaders(res);
+    const { movieTitle, date, time, location } = req.query; 
+
+    if (!movieTitle || !date || !time || !location) {
+        return res.status(400).json({ message: "Missing required parameters (title, date, time, location)." });
     }
 
     try {
-        const mailOptions = {
-            from: `"Reelio Contact Form" <${process.env.EMAIL_USER}>`, // Use your app email as sender
-            to: ADMIN_EMAIL, // Send to your admin email
-            subject: `NEW Contact Us / Newsletter Sign-up: ${emailAddress}`,
+        // 1. Get all SEATS ALREADY BOOKED (from online/manual bookings)
+        const sqlBooked = `
+            SELECT seats 
+            FROM bookings 
+            WHERE movie_title = ? 
+            AND location = ? 
+            AND DATE(date_time) = ? 
+            AND TIME_FORMAT(TIME(date_time), '%H:%i:%s') = ? 
+            AND payment_status != 'CANCELLED' 
+        `;
+        
+        const [bookedRows] = await pool.query(sqlBooked, [movieTitle, location, date, time]);
+
+        let occupiedSeats = new Set();
+        bookedRows.forEach(row => {
+            if (row.seats) {
+                row.seats.split(',').map(s => s.trim()).filter(s => s.length > 0).forEach(seat => occupiedSeats.add(seat));
+            }
+        });
+
+        // 2. Generate ALL possible seats (A1 to G10 = 70 seats)
+        const rows = ['A','B','C','D','E','F','G'];
+        const numSeatsPerRow = 10;
+        const allSeats = [];
+        rows.forEach(row => {
+            for(let i=1; i<=numSeatsPerRow; i++){
+                allSeats.push(`${row}${i}`);
+            }
+        });
+
+        // 3. Determine Available Seats
+        const availableSeats = allSeats.filter(seat => !occupiedSeats.has(seat));
+
+        res.status(200).json({ 
+            allSeats: allSeats,
+            occupiedSeats: Array.from(occupiedSeats),
+            availableSeats: availableSeats
+        }); 
+
+    } catch (error) {
+        console.error("Error fetching available seats for cashier:", error);
+        res.status(500).json({ message: "Database error retrieving seats." });
+    }
+});
+
+
+// POST: Manual Cash Booking (Called from cashier.html)
+app.post('/api/cashier/book', async (req, res) => {
+    const { userId, title, location, date, time, selectedSeats, totalPrice, paymentMethod, cashierEmail, cashierNotes } = req.body;
+    
+    if (!cashierEmail || !userId || !title || !selectedSeats || !totalPrice || !paymentMethod) {
+        return res.status(400).json({ message: "Missing required cashier booking data." });
+    }
+
+    const dateTime = `${date} ${time}`;
+    
+    try {
+        // Check if seats are still available before booking (prevent race condition)
+        const sqlCheck = `
+            SELECT seats 
+            FROM bookings 
+            WHERE movie_title = ? AND location = ? AND DATE(date_time) = ? AND TIME_FORMAT(TIME(date_time), '%H:%i:%s') = ? AND payment_status != 'CANCELLED'
+        `;
+        const [rows] = await pool.query(sqlCheck, [title, location, date, time]);
+        
+        let existingOccupied = new Set();
+        rows.forEach(row => {
+            if (row.seats) {
+                row.seats.split(',').map(s => s.trim()).filter(s => s.length > 0).forEach(seat => existingOccupied.add(seat));
+            }
+        });
+
+        const newSeats = selectedSeats.filter(seat => !existingOccupied.has(seat));
+        
+        if (newSeats.length !== selectedSeats.length) {
+            const blocked = selectedSeats.filter(seat => existingOccupied.has(seat));
+            return res.status(409).json({ message: `One or more seats are no longer available: ${blocked.join(', ')}` });
+        }
+        
+        // *** QR CODE GENERATION ***
+        const qrData = `CASHIER: ${cashierEmail} | ${title} | ${selectedSeats.join(', ')} | ${dateTime}`;
+        const dataUrl = await qrcode.toDataURL(qrData, { errorCorrectionLevel: 'H' });
+        const base64String = dataUrl.split(',')[1]; 
+        // *** END QR GENERATION ***
+
+        const [insertResult] = await pool.query(
+            `INSERT INTO bookings (user_email, movie_title, location, date_time, seats, total_price, payment_method, payment_status, qr_code_data, cashier_notes) 
+             VALUES (?, ?, ?, STR_TO_DATE(?, '%Y-%m-%d %H:%i:%s'), ?, ?, ?, 'PAID', ?, ?)` ,
+            [userId, title, location, dateTime, newSeats.join(', '), totalPrice, paymentMethod, base64String, cashierNotes]
+        );
+        
+        // Send confirmation email asynchronously
+        const bookingDetailsForEmail = {
+            userId: userId,
+            title: title,
+            location: location,
+            date: date,
+            time: time,
+            selectedSeats: newSeats,
+            totalPrice: totalPrice,
+            paymentMethod: paymentMethod,
+            bookingId: insertResult.insertId 
+        };
+        sendConfirmationEmail(bookingDetailsForEmail); 
+        
+        res.status(201).json({ message: "Manual booking successful", bookingId: insertResult.insertId });
+
+    } catch (error) {
+        console.error("Error processing manual cashier booking:", error);
+        res.status(500).json({ message: "Database error saving manual booking or QR generation failed." });
+    }
+});
+
+
+// --- Booking Control / Cancellation (NEW ROUTE) ---
+app.post('/api/admin/cancellation/:bookingId', async (req, res) => {
+    const bookingId = req.params.bookingId;
+    if (!bookingId) {
+        return res.status(400).json({ message: "Missing booking ID." });
+    }
+    try {
+        const [updateResult] = await pool.query(
+            'UPDATE bookings SET payment_status = "CANCELLED", date_time = NULL WHERE booking_id = ?', 
+            [bookingId]
+        );
+        
+        if (updateResult.affectedRows === 0) {
+            return res.status(404).json({ message: "Booking ID not found." });
+        }
+
+        res.status(200).json({ message: `Booking ${bookingId} cancelled successfully.` });
+    } catch (error) {
+        console.error("Cancellation Error:", error);
+        res.status(500).json({ message: "Server error during cancellation processing." });
+    }
+});
+
+// ===============================================================
+// 7. CONTACT FORM API ROUTE
+// ===============================================================
+app.post('/api/contact', async (req, res) => {
+
+    const { firstName, lastName, emailAddress, messageContent, newsletterChecked } = req.body;
+    const ADMIN_EMAIL = "reeliocinema@gmail.com"; // <-- !!! CHANGE THIS TO YOUR REAL ADMIN EMAIL !!!
+    
+    if (!emailAddress || !messageContent) { 
+        return res.status(400).json({ message: "Email and message content are required." });
+    }
+
+    try {
+        // --- ADMIN NOTIFICATION EMAIL ---
+        const mailOptionsToAdmin = {
+            from: `"Reelio Contact Form" <${process.env.EMAIL_USER}>`, 
+            to: ADMIN_EMAIL,
+            subject: `NEW Contact Form Submission from ${firstName || ''} ${lastName || ''}`,
             html: `
-                <p>A user has signed up for updates via the Contact Us form:</p>
-                <p><strong>Email Address:</strong> ${emailAddress}</p>
-                <p><em>Note: If this was a general contact form, you would parse other fields here.</em></p>
+                <p>A user has submitted the contact form:</p>
+                <p><strong>Name:</strong> ${firstName || 'N/A'} ${lastName || 'N/A'}</p>
+                <p><strong>Email:</strong> ${emailAddress}</p>
+                <p><strong>Message/Thoughts:</strong></p>
+                <div style="background-color: #2a2a2a; padding: 15px; border-radius: 5px; color: #f0f0f0;">
+                    ${messageContent.replace(/\n/g, '<br>')}
+                </div>
+                <p><strong>Newsletter Subscription:</strong> ${newsletterChecked ? 'YES' : 'NO'}</p>
             `
         };
 
-        let info = await transporter.sendMail(mailOptions);
-        console.log(`Contact form submission emailed successfully to ${ADMIN_EMAIL}: ${info.messageId}`);
-        res.status(200).json({ message: "Thank you for signing up!" });
+        await transporter.sendMail(mailOptionsToAdmin);
+        console.log(`Contact form submission emailed successfully to Admin (${ADMIN_EMAIL}).`);
+        
+        // --- USER CONFIRMATION EMAIL (ONLY if subscribed) ---
+        if (newsletterChecked) {
+            const confirmationOptions = {
+                from: `"Reelio Ticketing" <${process.env.EMAIL_USER}>`,
+                to: emailAddress, 
+                subject: `🎉 Welcome to Reelio! You're Subscribed!`,
+                html: `
+                    <p>Hi ${firstName || 'there'},</p>
+                    <p>Thank you for subscribing to the Reelio newsletter! We're excited to keep you updated with the latest movies and exclusive offers.</p>
+                    <p>We have also received your message/thought and will review it shortly.</p>
+                    <p>Happy Movie Watching!</p>
+                    <p>The Reelio Team</p>
+                `
+            };
+            await transporter.sendMail(confirmationOptions);
+            console.log(`Newsletter confirmation sent to ${emailAddress}.`);
+        }
+        // --------------------------------------------------
+
+        res.status(200).json({ message: "Thank you for your submission!" });
 
     } catch (error) {
-        console.error("Error sending contact form email:", error);
-        res.status(500).json({ message: "Failed to send contact submission." });
+        console.error("Error processing contact form submission:", error);
+        res.status(500).json({ message: "Failed to process submission or send emails." });
     }
 });
-// --- End New Contact Form API Route ---
+
+// --- NEW ROUTE: Sentiment ---
+app.get('/api/admin/sentiment-stats', async (req, res) => {
+    applyNoCacheHeaders(res);
+    try {
+        const [happyRows] = await pool.query('SELECT COUNT(*) as count FROM feedback WHERE sentiment = ?', ['Positive']);
+        const [unhappyRows] = await pool.query('SELECT COUNT(*) as count FROM feedback WHERE sentiment = ?', ['Negative']);
+        res.status(200).json({ happy: happyRows[0].count, unhappy: unhappyRows[0].count });
+    } catch (error) {
+        res.status(500).json({ message: "Database error" });
+    }
+});
+
+app.listen(PORT, () => {
+    console.log(`✅ Backend Server is running on http://localhost:${PORT}`);
+});
+
+// --- NEW ROUTE: Serve the QR Code Image ---
+app.get('/api/booking/qr/:bookingId', async (req, res) => {
+    applyNoCacheHeaders(res);
+    const bookingId = req.params.bookingId;
+
+    try {
+        const [rows] = await pool.query(
+            'SELECT qr_code_data FROM bookings WHERE booking_id = ?',
+            [bookingId]
+        );
+
+        if (rows.length === 0 || !rows[0].qr_code_data) {
+            return res.status(404).send('QR Code data not found for this booking.');
+        }
+
+        const base64Image = rows[0].qr_code_data;
+        const imageBuffer = Buffer.from(base64Image, 'base64');
+
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Content-Disposition', 'inline; filename="ticket.png"');
+        res.send(imageBuffer);
+
+    } catch (error) {
+        console.error("Error serving QR code image:", error);
+        res.status(500).send('Server error retrieving QR code.');
+    }
+});
+
+// Add this to server.js
+app.get('/api/admin/sentiment-stats', async (req, res) => {
+    applyNoCacheHeaders(res);
+    try {
+        // Count positive feedback
+        const [happyRows] = await pool.query('SELECT COUNT(*) as count FROM feedback WHERE sentiment = ?', ['Positive']);
+        // Count negative feedback
+        const [unhappyRows] = await pool.query('SELECT COUNT(*) as count FROM feedback WHERE sentiment = ?', ['Negative']);
+        
+        res.status(200).json({ 
+            happy: happyRows[0].count, 
+            unhappy: unhappyRows[0].count 
+        });
+    } catch (error) {
+        console.error("Error fetching sentiment:", error);
+        res.status(500).json({ message: "Database error" });
+    }
+});
+// --- END NEW ROUTE ---
 
 
 // ===============================================================
-// 7. START SERVER
+// 8. START SERVER
 // ===============================================================
 app.listen(PORT, () => {
     console.log(`✅ Backend Server is running on http://localhost:${PORT}`);
