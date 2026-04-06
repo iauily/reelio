@@ -1,16 +1,18 @@
-// admin.js (Updated with Booking Tabs and Analytics Fix)
-
+// admin.js (Complete and Corrected Version)
 const SERVER_URL = 'http://localhost:3000'; 
-
 // --- STEP 1: Define Available Data Lists for Showtimes ---
 const AVAILABLE_TIMES = [
     "10:00 AM", "11:30 AM", "1:00 PM", "3:30 PM", "6:00 PM", "8:30 PM", "10:00 PM"
 ];
 const AVAILABLE_DATES = [
-    "2026-02-28", "2026-03-01", "2026-03-02", "2026-03-03"
+    "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-01"
 ];
-const AVAILABLE_LOCATIONS = [
-    "SM San Mateo", "SM Megamall", "Ayala Malls Feliz", "Robinsons Galleria"
+// *** CHANGE 1: Renamed to AVAILABLE_CINEMAS ***
+const AVAILABLE_CINEMAS = [
+    "Cinema 1", // New cinema name to save in DB 'location' column
+    "Cinema 2",
+    "Cinema 3",
+    "Cinema 4"
 ];
 // ---------------------------------------------------------
 
@@ -27,7 +29,6 @@ window.deleteShowtime = async function(showtimeId, buttonElement) {
             alert(`Showtime ID ${showtimeId} deleted successfully.`);
             // Remove the element from the UI immediately
             buttonElement.closest('.showtime-entry').remove();
-            // For a full refresh, you could also call openEditMovieModal(movie_object_from_modal_context) again
         } else {
             alert(`Deletion failed: ${result.message || 'Server error'}`);
         }
@@ -44,14 +45,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const movieListForEditing = document.getElementById('movieListForEditing');
     const analyticsDiv = document.getElementById('analyticsTab');
     const bookingsListContainer = document.getElementById('bookingsListContainer'); // New Container ID
-      const addMovieForm = document.getElementById('addMovieForm');
+    const addMovieForm = document.getElementById('addMovieForm');
+    
     if (addMovieForm) {
         addMovieForm.addEventListener('submit', async function(event) {
             event.preventDefault();
             
             const movieData = {
-                title: document.getElementById('newMovieTitle').value, // Expects newMovieTitle
-                overview: document.getElementById('newMovieOverview').value, // Expects newMovieOverview
+                title: document.getElementById('newMovieTitle').value,
+                overview: document.getElementById('newMovieOverview').value,
                 rating_duration: document.getElementById('newMovieRating').value,
                 poster_url: document.getElementById('newMoviePoster').value,
                 status: document.getElementById('newMovieStatus').value,
@@ -70,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (response.ok) {
                     alert(`Movie added successfully with ID: ${result.movieId}`);
                     addMovieForm.reset();
-                    window.closeEditMovieModal(); // Close modal if open
+                    closeEditMovieModal(); // Close modal if open
                     fetchAndDisplayMoviesForEditing(); // Refresh the movie list
                 } else {
                     alert(`Failed to add movie: ${result.message || 'Server Error'}`);
@@ -85,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.deleteMovie = async function() {
     const movieId = document.getElementById('editMovieId').value; // Get ID from the hidden field in the modal
     
-    if (!confirm(`Are you sure you want to permanently delete Movie ID ${movieId}?`)) {
+    if (!confirm(`Are you sure you want to remove Movie ID ${movieId}?`)) {
         return;
     }
 
@@ -96,15 +98,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const result = await response.json();
 
         if (response.ok) {
-            alert(`Movie ID ${movieId} deleted successfully.`);
+            alert(`Movie ID ${movieId} removed successfully.`);
             closeEditMovieModal();
             fetchAndDisplayMoviesForEditing(); // Refresh the list
         } else {
-            alert(`Deletion failed: ${result.message || 'Server Error'}`);
+            alert(`Removal failed: ${result.message || 'Server Error'}`);
         }
     } catch (error) {
-        console.error("Delete Movie Fetch Error:", error);
-        alert('Failed to connect to the server to delete the movie.');
+        console.error("Remove Movie Fetch Error:", error);
+        alert('Failed to connect to the server to remove the movie.');
     }
 };
 
@@ -143,7 +145,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // NEW LOGIC: Sub-tab switching for Booking Management (Location Filter)
+    // NEW LOGIC: Sub-tab switching for Booking Management (Cinema Filter)
     document.querySelectorAll('#bookingManagementTab .admin-tab-btn').forEach(button => {
         button.addEventListener('click', () => {
             document.querySelectorAll('#bookingManagementTab .admin-tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -207,7 +209,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-   // *** REPLACEMENT for window.openEditMovieModal in admin.js ***
 window.openEditMovieModal = async function(movie) { // <-- Note: function is now ASYNC
     const modal = document.getElementById('editMovieModal');
     
@@ -219,7 +220,7 @@ window.openEditMovieModal = async function(movie) { // <-- Note: function is now
     document.getElementById('editMovieStatus').value = movie.status;
     document.getElementById('editMovieReleaseDate').value = movie.release_date ? movie.release_date.substring(0, 10) : '';
     document.getElementById('editMovieTrailerUrl').value = movie.trailer_url || '';
-    document.getElementById('showtimeMovieIdDisplay').textContent = movie.movie_id;
+    document.getElementById('showtimeMovieIdDisplay').textContent = movie.movie_id; // *** THIS IS THE LINE THAT WAS CAUSING THE ERROR ***
 
     const isComingSoon = movie.status === 'coming-soon';
     document.getElementById('editReleaseDateGroup').style.display = isComingSoon ? 'block' : 'none';
@@ -241,17 +242,15 @@ window.openEditMovieModal = async function(movie) { // <-- Note: function is now
         } else {
             // Render existing showtimes (using the same rendering logic as addShowtimeField)
             const dynamicDiv = document.getElementById('dynamicShowtimes');
-            // ... inside showtimes.forEach ...
-                    showtimes.forEach(st => {
-                        const existingField = document.createElement('div');
-                        existingField.classList.add('showtime-entry');
-                        existingField.innerHTML = `
-                            <p style="flex:1;">Time: ${st.show_time}, Date: ${st.show_date}, Loc: ${st.location}</p>
-                            <!-- NOW CALLING THE FUNCTION -->
-                            <button type="button" class="remove-showtime-btn" onclick="deleteShowtime(${st.showtime_id}, this)">X</button>
-                        `;
-                        dynamicDiv.appendChild(existingField);
-                    });
+            showtimes.forEach(st => {
+                const existingField = document.createElement('div');
+                existingField.classList.add('showtime-entry');
+                existingField.innerHTML = `
+                    <p style="flex:1;">Time: ${st.show_time}, Date: ${st.show_date}, Loc: ${st.location}</p>
+                    <button type="button" class="remove-showtime-btn" onclick="deleteShowtime(${st.showtime_id}, this)">X</button>
+                `;
+                dynamicDiv.appendChild(existingField);
+            });
         }
     } catch (error) {
         console.error("Error fetching showtimes:", error);
@@ -344,7 +343,6 @@ window.openEditMovieModal = async function(movie) { // <-- Note: function is now
             alert(`Success! Movie ID ${movieId} updated and ${newShowtimesData.length} new showtimes queued for addition.`);
             closeEditMovieModal();
             fetchAndDisplayMoviesForEditing();
-            // NOTE: You still need to implement DELETE functionality for existing showtimes
             
         } catch (error) {
             console.error("Admin Movie Edit/Showtime Fetch Error:", error);
@@ -364,7 +362,8 @@ window.openEditMovieModal = async function(movie) { // <-- Note: function is now
         // Generate options from the defined lists
         const timeOptions = AVAILABLE_TIMES.map(time => `<option value="${time}">${time}</option>`).join('');
         const dateOptions = AVAILABLE_DATES.map(date => `<option value="${date}">${new Date(date + 'T00:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'})}</option>`).join('');
-        const locationOptions = AVAILABLE_LOCATIONS.map(loc => `<option value="${loc}">${loc}</option>`).join('');
+        // *** FIX 2: Using AVAILABLE_CINEMAS here ***
+        const cinemaOptions = AVAILABLE_CINEMAS.map(cinema => `<option value="${cinema}">${cinema}</option>`).join('');
 
 
         const newField = document.createElement('div');
@@ -372,7 +371,7 @@ window.openEditMovieModal = async function(movie) { // <-- Note: function is now
         newField.innerHTML = `
             <select name="newShowtimeTime[]" required style="width:100%;"><option value="">Select Time</option>${timeOptions}</select>
             <select name="newShowtimeDate[]" required style="width:100%;"><option value="">Select Date</option>${dateOptions}</select>
-            <select name="newShowtimeLocation[]" required style="width:100%;"><option value="">Select Location</option>${locationOptions}</select>
+            <select name="newShowtimeLocation[]" required style="width:100%;"><option value="">Select Cinema</option>${cinemaOptions}</select>
             <button type="button" class="remove-showtime-btn" onclick="removeShowtimeField(this)">X</button>
         `;
         dynamicDiv.appendChild(newField);
@@ -382,7 +381,7 @@ window.openEditMovieModal = async function(movie) { // <-- Note: function is now
         button.closest('.showtime-entry').remove();
     };
     
-    // --- 4. Booking Management Handlers (UPDATED TO USE LOCATION FILTER) ---
+    // --- 4. Booking Management Handlers (UPDATED TO USE CINEMA FILTER) ---
     window.loadBookingsByLocation = async function(locationFilter) {
         const listContainer = document.getElementById('bookingsListContainer'); // Use the new container ID
         listContainer.innerHTML = '<p style="color:#bbb;">Loading transactions...</p>';
@@ -470,30 +469,33 @@ window.openEditMovieModal = async function(movie) { // <-- Note: function is now
     window.loadAnalyticsDashboard = async function() {
         analyticsDiv.innerHTML = '<h3>Analytics Dashboard</h3><div id="analyticsContent" style="display:flex; gap:20px; flex-wrap:wrap;">Loading statistics...</div>';
         try {
-            const response = await fetch(`${SERVER_URL}/api/admin/stats`);
-            
+            // 1. Fetch Revenue/Booking Stats
+            const statsResponse = await fetch(`${SERVER_URL}/api/admin/stats`);
             let stats = { totalBookings: 0, totalRevenue: 0 };
-            
-            if (response.ok) {
-                stats = await response.json();
-            } else {
-                // If server returns 4xx or 5xx, we still want to show the error message
-                throw new Error(`Server responded with status ${response.status}`);
-            }
+            if (statsResponse.ok) stats = await statsResponse.json();
 
-            // CORE FIX: Ensure revenue is treated as a number before calling .toFixed()
+            // 2. Fetch Sentiment Stats
+            const sentimentResponse = await fetch(`${SERVER_URL}/api/admin/sentiment-stats`);
+            let sStats = { happy: 0, unhappy: 0 };
+            if (sentimentResponse.ok) sStats = await sentimentResponse.json();
+
+            // Format data
             const revenueValue = typeof stats.totalRevenue === 'number' ? stats.totalRevenue : 0; 
             const bookingCount = typeof stats.totalBookings === 'number' ? stats.totalBookings : 0;
             
             const contentDiv = document.getElementById('analyticsContent');
             contentDiv.innerHTML = `
-                <div class="stat-card total-bookings" style="background-color:#1a1a1a; padding:20px; border-radius:8px; flex:1; min-width:200px;">
+                <div class="stat-card total-bookings" style="background-color:#1a1a1a; padding:20px; border-radius:8px; flex:1; min-width:200px; border: 1px solid #333;">
                     <h4>Total Ticket Transactions</h4>
                     <p style="font-size:2em; color:#ffcc00; margin:5px 0;">${bookingCount}</p>
                 </div>
-                <div class="stat-card total-revenue" style="background-color:#1a1a1a; padding:20px; border-radius:8px; flex:1; min-width:200px;">
+                <div class="stat-card total-revenue" style="background-color:#1a1a1a; padding:20px; border-radius:8px; flex:1; min-width:200px; border: 1px solid #333;">
                     <h4>Total Revenue Generated</h4>
                     <p style="font-size:2em; color:#ffcc00; margin:5px 0;">₱${revenueValue.toFixed(2)}</p> 
+                </div>
+                <div class="stat-card sentiment" style="background-color:#1a1a1a; padding:20px; border-radius:8px; flex:1; min-width:200px; border: 1px solid #333;">
+                    <h4>Customer Sentiment</h4>
+                    <p style="font-size:1.2em; margin:5px 0;">Happy: ${sStats.happy} | Unhappy: ${sStats.unhappy}</p>
                 </div>
             `;
         } catch (error) {
@@ -507,11 +509,11 @@ window.openEditMovieModal = async function(movie) { // <-- Note: function is now
     const locationTab = document.getElementById('locationManagementTab');
     if (locationTab) {
         locationTab.innerHTML = `
-            <h3>Location Management</h3>
-            <p>This section manages cinema locations (e.g., add/edit theaters, seat counts).</p>
+            <h3>Cinema Management (Placeholder)</h3>
+            <p>This section manages cinemas and theaters.</p>
             <div class="admin-form">
-                 <div class="form-group"><label for="locationName">Location Name</label><input type="text" id="locationName"></div>
-                 <button class="btn-primary" onclick="alert('Location Management is a placeholder and requires backend API integration.')">Add New Location</button>
+                 <div class="form-group"><label for="locationName">Cinema Name</label><input type="text" id="locationName"></div>
+                 <button class="btn-primary" onclick="alert('Cinema Management is a placeholder and requires backend API integration.')">Add New Cinema</button>
             </div>
         `;
     }
@@ -577,7 +579,7 @@ window.openEditMovieModal = async function(movie) { // <-- Note: function is now
                 <div class="form-group" style="display:flex; gap:10px;">
                     <div style="flex:1;"><label for="showtimeTimeInput">Time</label><input type="text" id="showtimeTimeInput" placeholder="e.g., 7:00 PM" required></div>
                     <div style="flex:1;"><label for="showtimeDateInput">Date</label><input type="date" id="showtimeDateInput" required></div>
-                    <div style="flex:1;"><label for="showtimeLocationInput">Location</label><input type="text" id="showtimeLocationInput" placeholder="e.g., SM Megamall" required></div>
+                    <div style="flex:1;"><label for="showtimeLocationInput">Cinema</label><input type="text" id="showtimeLocationInput" placeholder="e.g., Cinema 1" required></div>
                 </div>
                 <button type="submit" class="btn-primary">Add New Showtime</button>
             </form>
@@ -610,8 +612,6 @@ window.openEditMovieModal = async function(movie) { // <-- Note: function is now
                     const movieId = showtimeData.movieId;
                     const movieCard = document.querySelector(`.admin-movie-card[data-movie-id='${movieId}']`);
                     if (movieCard) {
-                        // We need the movie data to re-open the modal correctly, 
-                        // for simplicity here, we'll just reload the list for now.
                         closeEditMovieModal(); 
                         fetchAndDisplayMoviesForEditing(); // Force list refresh to see if it reloads showtimes next time
                     }
