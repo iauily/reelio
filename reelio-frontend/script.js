@@ -1,26 +1,13 @@
+// script.js (Complete Version with Global Theme Logic)
+
 /***********************
  * LOGIN / SIGNUP MODALS
  ***********************/
 
-// Function to open the login modal
-function openLoginModal() {
-    document.getElementById('loginModal').style.display = 'block';
-}
-
-// Function to close the login modal
-function closeLoginModal() {
-    document.getElementById('loginModal').style.display = 'none';
-}
-
-// Function to open the signup modal
-function openSignUpModal() {
-    document.getElementById('signUpModal').style.display = 'block';
-}
-
-// Function to close the signup modal
-function closeSignUpModal() {
-    document.getElementById('signUpModal').style.display = 'none';
-}
+function openLoginModal() { document.getElementById('loginModal').style.display = 'block'; }
+function closeLoginModal() { document.getElementById('loginModal').style.display = 'none'; }
+function openSignUpModal() { document.getElementById('signUpModal').style.display = 'block'; }
+function closeSignUpModal() { document.getElementById('signUpModal').style.display = 'none'; }
 
 // Global click listener for closing modals when clicking outside
 window.addEventListener('click', function(event) {
@@ -36,17 +23,54 @@ window.addEventListener('click', function(event) {
 });
 
 /***********************
+ * THEME MANAGEMENT (Global Logic)
+ ***********************/
+
+function applyTheme(theme) {
+    const body = document.body;
+    if (theme === 'light') {
+        body.classList.add('light-mode');
+    } else {
+        body.classList.remove('light-mode');
+    }
+}
+
+async function loadThemePreference() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    let theme = 'dark'; // Default
+
+    if (currentUser && currentUser.email) {
+        // Try to fetch from server first (best practice)
+        try {
+            const response = await fetch(`http://localhost:3000/api/user/theme/${currentUser.email}`);
+            if (response.ok) {
+                const data = await response.json();
+                theme = data.theme || 'dark';
+            }
+        } catch (error) {
+            console.warn("Could not fetch theme preference from server. Falling back to local storage.");
+        }
+    }
+    
+    // Fallback to local storage if server fetch failed or user is not logged in
+    if (!theme || theme === 'dark') {
+        theme = localStorage.getItem('theme') || 'dark';
+    }
+
+    applyTheme(theme);
+}
+
+
+/***********************
  * USER AUTHENTICATION & HEADER UI
  ***********************/
 
-// Elements from the header
 const authActionsDiv = document.getElementById('authActions');
 const userProfileDisplayDiv = document.getElementById('userProfileDisplay');
 const loggedInUsernameSpan = document.getElementById('loggedInUsername');
 const myBookingsNavLink = document.getElementById('myBookingsNavLink');
 const adminNavLink = document.getElementById('adminNavLink');
 
-// Function to update the header based on login status (DEFINED FIRST)
 function updateHeaderUI(user) {
     if (user) {
         authActionsDiv.style.display = 'none';
@@ -59,7 +83,6 @@ function updateHeaderUI(user) {
         } else {
             adminNavLink.style.display = 'none';
         }
-
     } else {
         authActionsDiv.style.display = 'block';
         userProfileDisplayDiv.style.display = 'none';
@@ -69,7 +92,6 @@ function updateHeaderUI(user) {
     }
 }
 
-// Handle Logout (DEFINED FIRST)
 window.handleLogout = function() {
     localStorage.removeItem('currentUser');
     if (authActionsDiv) updateHeaderUI(null);
@@ -81,6 +103,9 @@ window.handleLogout = function() {
 
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- RUN THEME LOAD ---
+    loadThemePreference(); 
+
     // Handle Login Form Submission
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
@@ -103,6 +128,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (authActionsDiv) updateHeaderUI(data.user);
                     closeLoginModal();
                     alert('Login successful!');
+                    // Apply theme from server response data immediately
+                    applyTheme(data.user.theme || 'dark');
                     window.location.reload(); 
                 } else {
                     alert(`Login failed: ${data.message || 'Check server logs'}`);
@@ -145,6 +172,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (authActionsDiv) updateHeaderUI(data.user);
                     closeSignUpModal();
                     alert(`Welcome, ${firstName}! Your account has been created and you are now logged in.`);
+                    // *** NEW: Apply theme immediately on signup ***
+                    applyTheme(data.user.theme || 'dark');
                     window.location.reload(); 
                 } else {
                     alert(`Registration failed: ${data.message || 'Check server logs'}`);
@@ -158,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Check login status on page load (CALLS THE DEFINED FUNCTION)
+    // Check login status on page load
     const storedUser = JSON.parse(localStorage.getItem('currentUser'));
     if (authActionsDiv) updateHeaderUI(storedUser);
 });
@@ -193,7 +222,7 @@ function renderMovies(movies, listSelector, movieType) {
             poster: movieData.poster_url,
             releaseDate: movieData.release_date,
             trailer: movieData.trailer_url,
-            movieId: movieData.movie_id // PASSED MOVIE ID HERE
+            movieId: movieData.movie_id
         };
         
         const movieLink = document.createElement('a');
@@ -270,15 +299,12 @@ if (location.pathname.includes('index.html') || location.pathname === '/') {
  ***********************/
 
 function playTrailer(buttonElement) {
-    // 1. Find the closest parent element that is a .hero-slide
     const slide = buttonElement.closest('.hero-slide');
     
     if (slide) {
-        // 2. Get the trailer URL from the data attribute
         const trailerUrl = slide.dataset.trailerUrl;
 
         if (trailerUrl) {
-            // Opens the trailer URL (which should include ?autoplay=1) in a new tab
             window.open(trailerUrl, '_blank'); 
         } else {
             console.warn("Trailer URL not found for this slide.");
@@ -286,8 +312,6 @@ function playTrailer(buttonElement) {
         }
     }
 }
-
-// --- END Trailer Functionality ---
 
 /***********************
  * MOVIE DETAILS PAGES (Now Showing & Coming Soon)
@@ -305,17 +329,22 @@ if (location.pathname.includes('now-showing-details.html')) {
         
         const buyButton = document.getElementById('buyNowButton');
         buyButton.addEventListener('click', () => {
-            const selectedTime = document.getElementById('time-select').value;
-            const selectedDate = document.getElementById('date-select').value;
-            const selectedLocation = document.getElementById('location-select').value;
+            const selectedTime = timeSelect.value;
+            const selectedDate = dateSelect.value;
+            const selectedLocation = locationSelect.value;
+            
+            if (!selectedTime || !selectedDate || !selectedLocation) {
+                alert('Please select a Cinema, Date, and Time before proceeding.');
+                return;
+            }
 
             const bookingDetails = {
                 title: movie.title,
                 poster: movie.poster,
                 rating: movie.rating,
-                location: selectedLocation,
+                location: selectedLocation, 
                 date: selectedDate,
-                time: selectedTime
+                time: selectedTime // <-- THIS IS THE 24HR VALUE (e.g., "18:30:00")
             };
             localStorage.setItem('selectedBooking', JSON.stringify(bookingDetails));
             window.location.href = "buy-tickets.html";
@@ -351,14 +380,16 @@ if (location.pathname.includes('coming-soon-details.html')) {
 
 
 /***********************
- * BUY TICKETS PAGE
+ * BUY TICKETS PAGE (FIXED: Dynamic Seat Loading & Time Display)
  ***********************/
 if (location.pathname.includes('buy-tickets.html')) {
+    const SERVER_URL = 'http://localhost:3000';
     const selectedBooking = JSON.parse(localStorage.getItem('selectedBooking'));
     
+    // ... (DOM element lookups) ...
     const summaryPosterEl = document.getElementById('summaryPoster');
     const summaryMovieTitleEl = document.getElementById('summaryMovieTitle');
-    const summaryLocationEl = document.getElementById('summaryLocation');
+    const summaryLocationEl = document.getElementById('summaryLocation'); 
     const summaryDateEl = document.getElementById('summaryDate');
     const summaryTimeEl = document.getElementById('summaryTime');
     const summaryRatingEl = document.getElementById('summaryRating');
@@ -369,7 +400,23 @@ if (location.pathname.includes('buy-tickets.html')) {
         if (summaryMovieTitleEl) summaryMovieTitleEl.textContent = selectedBooking.title;
         if (summaryLocationEl) summaryLocationEl.textContent = selectedBooking.location;
         if (summaryDateEl) summaryDateEl.textContent = selectedBooking.date;
-        if (summaryTimeEl) summaryTimeEl.textContent = selectedBooking.time;
+        
+        // *** FIX 2: AM/PM Conversion for Display ***
+        function convert24hrToAMPM(time24hr) {
+            const [hoursStr, minutesStr] = time24hr.split(':');
+            const h = parseInt(hoursStr, 10);
+            const m = minutesStr ? minutesStr.substring(0, 2) : '00'; 
+            const period = h >= 12 ? 'PM' : 'AM';
+            const hours12hr = h % 12 === 0 ? 12 : h % 12;
+            return `${hours12hr}:${m} ${period}`;
+        }
+        
+        if (selectedBooking.time && selectedBooking.time.includes(':')) {
+            document.getElementById('summaryTime').textContent = convert24hrToAMPM(selectedBooking.time);
+        } else {
+            document.getElementById('summaryTime').textContent = selectedBooking.time;
+        }
+
         if (summaryRatingEl) summaryRatingEl.textContent = selectedBooking.rating;
         
         const seatingChart = document.getElementById('seatingChart');
@@ -385,54 +432,73 @@ if (location.pathname.includes('buy-tickets.html')) {
         const btnProceedToPayment = document.getElementById('btnProceedToPayment');
 
         function updateBookingSummary() {
-    const selectedSeatsDisplay = document.getElementById('selectedSeatsDisplay');
-    const totalPriceDisplay = document.getElementById('totalPriceDisplay');
-    const btnProceedToPayment = document.getElementById('btnProceedToPayment');
-    
-    const seatPrice = 350.00;
-    let totalPrice = selectedSeats.length * seatPrice; 
+            const seatPrice = 350.00;
+            let totalPrice = selectedSeats.length * seatPrice; 
 
-    selectedSeatsDisplay.textContent = selectedSeats.length > 0 ? selectedSeats.sort().join(', ') : 'None';
-    totalPriceDisplay.textContent = totalPrice.toFixed(2);
-    btnProceedToPayment.disabled = selectedSeats.length === 0;
-}
+            selectedSeatsDisplay.textContent = selectedSeats.length > 0 ? selectedSeats.sort().join(', ') : 'None';
+            totalPriceDisplay.textContent = totalPrice.toFixed(2);
+            btnProceedToPayment.disabled = selectedSeats.length === 0;
+        }
 
-        const occupiedSeats = ['A3','A4','B5','C1','C2','D8','D9','G10']; 
-
-        rows.forEach(row => {
-            for (let i=1; i<=numSeatsPerRow; i++){
-                const seatId = `${row}${i}`;
-                const seat = document.createElement('div');
-                seat.classList.add('seat');
-                seat.textContent = i;
-                seat.dataset.seatId = seatId;
-
-                if (occupiedSeats.includes(seatId)) {
-                    seat.classList.add('occupied');
+        async function loadOccupiedSeats() {
+            seatingChart.innerHTML = '<p style="color:#bbb;">Loading seats...</p>';
+            try {
+                const url = `${SERVER_URL}/api/seats/occupied?movieTitle=${encodeURIComponent(selectedBooking.title)}&date=${encodeURIComponent(selectedBooking.date)}&time=${encodeURIComponent(selectedBooking.time)}&location=${encodeURIComponent(selectedBooking.location)}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                let occupiedSeats = [];
+                if (response.ok && data.occupiedSeats) {
+                    occupiedSeats = data.occupiedSeats; 
                 } else {
-                    seat.addEventListener('click', () => {
-                        if(seat.classList.contains('selected')){
-                            seat.classList.remove('selected');
-                            selectedSeats = selectedSeats.filter(s => s !== seatId);
-                            totalPrice -= seatPrice;
-                        } else {
-                            if (selectedSeats.length >= 8) {
-                                alert("You can only select a maximum of 8 seats at a time.");
-                                return;
-                            }
-                            seat.classList.add('selected');
-                            selectedSeats.push(seatId);
-                            totalPrice += seatPrice;
-                        }
-                        updateBookingSummary();
-                    });
+                    console.warn("Could not retrieve occupied seats from server. Using simulation as fallback.");
+                    occupiedSeats = ['A3','A4','B5','C1','C2','D8','D9','G10']; 
                 }
-                seatingChart.appendChild(seat);
+
+                // --- Build the Seating Chart Grid ---
+                seatingChart.innerHTML = ''; 
+                rows.forEach(row => {
+                    for(let i=1; i<=numSeatsPerRow; i++){
+                        const seatId = `${row}${i}`;
+                        const seat = document.createElement('div');
+                        seat.classList.add('seat');
+                        seat.textContent = i;
+                        seat.dataset.seatId = seatId;
+
+                        if(occupiedSeats.includes(seatId)){
+                            seat.classList.add('occupied');
+                        } else {
+                            seat.addEventListener('click', ()=>{
+                                if(seat.classList.contains('selected')){
+                                    seat.classList.remove('selected');
+                                    selectedSeats = selectedSeats.filter(s=>s!==seatId); 
+                                    totalPrice -= seatPrice;
+                                } else {
+                                    if (selectedSeats.length >= 8) {
+                                        alert("You can only select a maximum of 8 seats at a time.");
+                                        return;
+                                    }
+                                    seat.classList.add('selected');
+                                    selectedSeats.push(seatId);
+                                    totalPrice += seatPrice;
+                                }
+                                updateBookingSummary();
+                            });
+                        }
+                        seatingChart.appendChild(seat);
+                    }
+                });
+
+            } catch (error) {
+                console.error("Error fetching occupied seats:", error);
+                seatingChart.innerHTML = '<p style="color:red;">Error loading seats. Please try again.</p>';
             }
-        });
+            updateBookingSummary();
+        }
+        loadOccupiedSeats(); 
 
-        updateBookingSummary();
-
+        // --- Proceed to Payment Logic ---
         btnProceedToPayment.addEventListener('click', () => {
             if (selectedSeats.length > 0) {
                 const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -446,7 +512,7 @@ if (location.pathname.includes('buy-tickets.html')) {
                 const finalBooking = {
                     ...selectedBooking, 
                     selectedSeats: selectedSeats,
-                    totalPrice: totalPrice,
+                    totalPrice: totalPrice.toFixed(2),
                     userId: currentUser.email
                 };
                 localStorage.setItem('finalBooking', JSON.stringify(finalBooking));
@@ -476,33 +542,43 @@ if (location.pathname.includes('payment.html')) {
         document.getElementById('paymentDate').textContent = finalBooking.date;
         document.getElementById('paymentTime').textContent = finalBooking.time;
         document.getElementById('paymentSelectedSeats').textContent = finalBooking.selectedSeats.join(', ');
-        document.getElementById('paymentTotalAmount').textContent = `₱${parseFloat(finalBooking.totalPrice).toFixed(2)}`;
+        
+        const totalAmountText = `₱${parseFloat(finalBooking.totalPrice).toFixed(2)}`;
+        document.getElementById('paymentTotalAmount').textContent = totalAmountText;
 
-        // *** NEW: Update GCash display when total amount is set ***
+        // Update Price displays for other forms
+        const cashAmountDisplay = document.getElementById('cashAmountDisplay');
+        if (cashAmountDisplay) cashAmountDisplay.textContent = totalAmountText;
+        
         const gcashAmountDisplay = document.getElementById('gcashAmountDisplay');
-        if (gcashAmountDisplay) {
-            gcashAmountDisplay.textContent = `₱${parseFloat(finalBooking.totalPrice).toFixed(2)}`;
-        }
+        if (gcashAmountDisplay) gcashAmountDisplay.textContent = totalAmountText;
         
         // Payment method selection logic
         const paymentOptionBtns = document.querySelectorAll('.payment-option-btn');
         const cardPaymentForm = document.getElementById('cardPaymentForm');
         const gcashPaymentForm = document.getElementById('gcashPaymentForm');
+        const cashPaymentForm = document.getElementById('cashPaymentForm'); // Make sure this is defined
         let currentPaymentMethod = 'card';
 
         paymentOptionBtns.forEach(button => {
             button.addEventListener('click', () => {
                 paymentOptionBtns.forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
-                
+        
                 currentPaymentMethod = button.dataset.paymentMethod;
 
                 if (currentPaymentMethod === 'card') {
                     cardPaymentForm.style.display = 'block';
                     gcashPaymentForm.style.display = 'none';
+                    cashPaymentForm.style.display = 'none';
                 } else if (currentPaymentMethod === 'gcash') {
                     cardPaymentForm.style.display = 'none';
                     gcashPaymentForm.style.display = 'block';
+                    cashPaymentForm.style.display = 'none';
+                } else if (currentPaymentMethod === 'cash') {
+                    cardPaymentForm.style.display = 'none';
+                    gcashPaymentForm.style.display = 'none';
+                    cashPaymentForm.style.display = 'block';
                 }
             });
         });
@@ -513,19 +589,23 @@ if (location.pathname.includes('payment.html')) {
             processPayment(finalBooking, 'Card');
         });
 
-        // *** MODIFIED: Handle GCash Payment Submission for QR Scan Simulation ***
+        // Handle Cash Payment Form Submission (THE NEW CODE)
+        if (cashPaymentForm) {
+            cashPaymentForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                console.log("Confirm Booking Clicked!");
+                processPayment(finalBooking, 'Cash on Counter');
+            });
+        }
+
+        // Handle GCash Payment Submission
         const confirmGcashScanBtn = document.getElementById('confirmGcashScan');
         confirmGcashScanBtn.addEventListener('click', function() {
-            
-            // Temporarily disable button to prevent spamming and show loading state
             confirmGcashScanBtn.disabled = true;
             confirmGcashScanBtn.textContent = 'Scanning & Waiting for Approval...';
 
-            // Simulate successful payment confirmation after a brief period (3 seconds)
             setTimeout(() => {
-                // Simulate successful payment confirmation from the gateway
                 processPayment(finalBooking, 'GCash (QR Scan)'); 
-                // Note: The processPayment will trigger the redirect, so re-enabling is less critical
                 confirmGcashScanBtn.disabled = false; 
             }, 3000); 
         });
@@ -534,6 +614,7 @@ if (location.pathname.includes('payment.html')) {
         document.querySelector('.payment-page main').innerHTML = `<div style="text-align:center; padding:50px; margin-top: 100px;"><h2>No Booking Information</h2><p>Please go back to the <a href="index.html">Now Showing</a> page to start a new booking.</p></div>`;
     }
 }
+
 
 // Function to process payment and save to DB
 async function processPayment(bookingDetails, paymentMethod) {
@@ -581,7 +662,14 @@ async function processPayment(bookingDetails, paymentMethod) {
             localStorage.removeItem('selectedBooking');
             localStorage.removeItem('finalBooking');
 
-            window.location.href = 'payment-success.html';
+            // --- CORRECTED REDIRECT LOGIC ---
+            // This now handles the redirect once, based on the payment method
+            if (paymentMethod === 'Cash on Counter') {
+                window.location.href = 'booking-confirmed.html';
+            } else {
+                window.location.href = 'payment-success.html';
+            }
+            // --------------------------------
 
         } else {
             alert(`Booking failed on server side: ${result.message || 'Unknown Server Error'}`);
@@ -680,7 +768,7 @@ if (location.pathname.includes('my-bookings.html')) {
                         <div class="booking-info">
                             <h3>${booking.movie_title}</h3>
                             <p><strong>Booking ID:</strong> ${booking.booking_id}</p> 
-                            <p><strong>Location:</strong> ${booking.location}</p>
+                            <p><strong>Cinema:</strong> ${booking.location}</p>
                             <p><strong>Date & Time:</strong> ${dateTime}</p>
                             <p><strong>Seats:</strong> ${booking.seats}</p>
                             <p><strong>Payment:</strong> ${booking.payment_method}</p>
@@ -740,28 +828,30 @@ if (location.pathname.includes('index.html') || location.pathname === '/') {
 }
 
 // --- FOR CONTACT US PAGE SUBMISSION ---
-// Add this block to the VERY END of your existing script.js file
-
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. Get the form element by its ID
     const contactForm = document.getElementById('contactForm'); 
     
     if (contactForm) {
         contactForm.addEventListener('submit', async function(e) {
-            e.preventDefault(); // Stop the default browser submission
+            e.preventDefault(); 
             
-            // 2. Get the email value from the input field (MUST match the ID in the HTML)
-            const emailInput = document.getElementById('emailAddress'); 
-            if (!emailInput || !emailInput.value) {
-                alert('Please enter your email address.');
-                return;
-            }
-
+            const firstName = document.getElementById('firstName')?.value;
+            const lastName = document.getElementById('lastName')?.value;
+            const emailAddress = document.getElementById('emailAddress')?.value;
+            const messageContent = document.getElementById('messageContent')?.value;
+            const newsletterChecked = document.getElementById('newsletter')?.checked || false; 
+            
             const SERVER_URL = 'http://localhost:3000';
-            const formData = { emailAddress: emailInput.value }; // Data sent to server
+            const formData = { 
+                firstName,
+                lastName,
+                emailAddress, 
+                messageContent,
+                newsletterChecked
+            }; 
 
             try {
-                const response = await fetch(`${SERVER_URL}/api/contact`, { // <-- NEW SERVER ENDPOINT
+                const response = await fetch(`${SERVER_URL}/api/contact`, { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
@@ -769,7 +859,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const result = await response.json();
 
                 if (response.ok) {
-                    alert('Thank you for signing up!');
+                    alert('Thank you for your message! We will be in touch soon.');
                     contactForm.reset();
                 } else {
                     alert(`Submission failed: ${result.message || 'Server error'}`);
